@@ -9,7 +9,6 @@ const animeData = [
   { id: 1, title: "Naruto", image: "path/to/naruto.jpg" },
   { id: 2, title: "One Piece", image: "path/to/onepiece.jpg" },
   { id: 3, title: "Attack on Titan", image: "path/to/aot.jpg" },
-  // ... other anime data
 ];
 
 const Index = () => {
@@ -31,7 +30,6 @@ const Index = () => {
           </Link>
         </div>
         
-        {/* Search Bar */}
         <div className="relative mb-8">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <Input
@@ -43,26 +41,26 @@ const Index = () => {
           />
         </div>
 
-        {/* Anime Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredAnime.map((anime) => (
-            <Card 
-              key={anime.id}
-              className="bg-gray-800 border-gray-700 hover:border-purple-500 transition-all duration-300 cursor-pointer"
-            >
-              <CardContent className="p-4">
-                <div className="aspect-[3/4] relative mb-3">
-                  <img
-                    src={anime.image}
-                    alt={anime.title}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                </div>
-                <h3 className="text-lg font-semibold text-purple-400 hover:text-purple-300">
-                  {anime.title}
-                </h3>
-              </CardContent>
-            </Card>
+            <Link to={`/anime/${anime.id}`} key={anime.id}>
+              <Card 
+                className="bg-gray-800 border-gray-700 hover:border-purple-500 transition-all duration-300 cursor-pointer"
+              >
+                <CardContent className="p-4">
+                  <div className="aspect-[3/4] relative mb-3">
+                    <img
+                      src={anime.image}
+                      alt={anime.title}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  </div>
+                  <h3 className="text-lg font-semibold text-purple-400 hover:text-purple-300">
+                    {anime.title}
+                  </h3>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       </div>
