@@ -2,29 +2,14 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
-// Временные данные для демонстрации
 const animeData = [
-  {
-    id: 1,
-    title: "Demon Slayer",
-    image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&h=700",
-  },
-  {
-    id: 2,
-    title: "Attack on Titan",
-    image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&h=700",
-  },
-  {
-    id: 3,
-    title: "One Piece",
-    image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&h=700",
-  },
-  {
-    id: 4,
-    title: "Jujutsu Kaisen",
-    image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&h=700",
-  },
+  { id: 1, title: "Naruto", image: "path/to/naruto.jpg" },
+  { id: 2, title: "One Piece", image: "path/to/onepiece.jpg" },
+  { id: 3, title: "Attack on Titan", image: "path/to/aot.jpg" },
+  // ... other anime data
 ];
 
 const Index = () => {
@@ -37,7 +22,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8 text-purple-400">Anime Portal</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-purple-400">Anime Portal</h1>
+          <Link to="/admin">
+            <Button variant="outline" className="bg-purple-600 hover:bg-purple-700 border-none">
+              Админ панель
+            </Button>
+          </Link>
+        </div>
         
         {/* Search Bar */}
         <div className="relative mb-8">
