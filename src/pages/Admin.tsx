@@ -25,6 +25,8 @@ const mockAnimeList = [
   },
 ];
 
+localStorage.setItem('adminToken', 'your-secure-admin-token');
+
 const isAdmin = () => {
   const token = localStorage.getItem('adminToken');
   return token === 'your-secure-admin-token'; // В реальном приложении используйте настоящую проверку токена
