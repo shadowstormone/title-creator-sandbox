@@ -19,8 +19,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/admin" element={<Admin />} />
-          <Route path="/anime/:id" element={<AnimeDetails />} />
-          <Route path="/admin/anime/:id" element={<AnimeEdit />} />
+          <Route path="/anime/:id-:titleEn" element={<AnimeDetails />} />
+          <Route path="/admin/anime/:id-:titleEn" element={<AnimeEdit />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
