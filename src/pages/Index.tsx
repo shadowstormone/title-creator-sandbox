@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Filter } from "lucide-react";
+import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,18 +45,18 @@ const allStudios = Array.from(new Set(animeData.map(anime => anime.studio)));
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedYear, setSelectedYear] = useState<string>("");
-  const [selectedSeason, setSelectedSeason] = useState<string>("");
-  const [selectedStudio, setSelectedStudio] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedSeason, setSelectedSeason] = useState<string>("all");
+  const [selectedStudio, setSelectedStudio] = useState<string>("all");
 
   const filteredAnime = animeData.filter((anime) => {
     const matchesSearch = anime.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          anime.titleEn.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesGenres = selectedGenres.length === 0 || 
                          selectedGenres.every(genre => anime.genres.includes(genre));
-    const matchesYear = !selectedYear || anime.year.toString() === selectedYear;
-    const matchesSeason = !selectedSeason || anime.season === selectedSeason;
-    const matchesStudio = !selectedStudio || anime.studio === selectedStudio;
+    const matchesYear = selectedYear === "all" || anime.year.toString() === selectedYear;
+    const matchesSeason = selectedSeason === "all" || anime.season === selectedSeason;
+    const matchesStudio = selectedStudio === "all" || anime.studio === selectedStudio;
 
     return matchesSearch && matchesGenres && matchesYear && matchesSeason && matchesStudio;
   });
@@ -99,7 +99,7 @@ const Index = () => {
                 <SelectValue placeholder="Год" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Все годы</SelectItem>
+                <SelectItem value="all">Все годы</SelectItem>
                 {allYears.map(year => (
                   <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                 ))}
@@ -111,7 +111,7 @@ const Index = () => {
                 <SelectValue placeholder="Сезон" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Все сезоны</SelectItem>
+                <SelectItem value="all">Все сезоны</SelectItem>
                 {allSeasons.map(season => (
                   <SelectItem key={season} value={season}>{season}</SelectItem>
                 ))}
@@ -123,7 +123,7 @@ const Index = () => {
                 <SelectValue placeholder="Студия" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Все студии</SelectItem>
+                <SelectItem value="all">Все студии</SelectItem>
                 {allStudios.map(studio => (
                   <SelectItem key={studio} value={studio}>{studio}</SelectItem>
                 ))}
