@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Artplayer from "artplayer";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const AnimeDetails = () => {
   const { id } = useParams();
   const [player, setPlayer] = useState<Artplayer | null>(null);
+  const [currentEpisode, setCurrentEpisode] = useState("1");
 
   // Временные данные (в будущем будут загружаться из базы данных)
   const animeData = {
@@ -20,7 +22,7 @@ const AnimeDetails = () => {
   useEffect(() => {
     const art = new Artplayer({
       container: ".artplayer-app",
-      url: animeData.videoUrl,
+      url: `${animeData.videoUrl}?episode=${currentEpisode}`,
       volume: 0.5,
       isLive: false,
       muted: false,
@@ -53,7 +55,14 @@ const AnimeDetails = () => {
         art.destroy(false);
       }
     };
-  }, []);
+  }, [currentEpisode]);
+
+  const handleEpisodeChange = (episode: string) => {
+    setCurrentEpisode(episode);
+    if (player) {
+      player.switchUrl(`${animeData.videoUrl}?episode=${episode}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -90,6 +99,22 @@ const AnimeDetails = () => {
             </div>
           </div>
           
+          <div className="mb-4">
+            <label className="block mb-2">Выберите серию:</label>
+            <Select value={currentEpisode} onValueChange={handleEpisodeChange}>
+              <SelectTrigger className="bg-gray-700 border-gray-600 w-[200px]">
+                <SelectValue placeholder="Выберите серию" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: animeData.episodes }, (_, i) => (
+                  <SelectItem key={i + 1} value={(i + 1).toString()}>
+                    Серия {i + 1}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Контейнер для плеера */}
           <div className="artplayer-app w-full aspect-video bg-black rounded-lg overflow-hidden"></div>
         </Card>
