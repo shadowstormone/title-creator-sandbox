@@ -70,12 +70,12 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+    <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-purple-400">Anime Portal</h1>
           <Link to="/admin">
-            <Button variant="outline" className="bg-purple-600 hover:bg-purple-700 border-none">
+            <Button variant="outline" className="bg-purple-600 hover:bg-purple-700 border-none text-white">
               Админ панель
             </Button>
           </Link>
@@ -95,10 +95,10 @@ const Index = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="bg-gray-800 border-gray-700">
+              <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
                 <SelectValue placeholder="Год" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-gray-800 text-gray-100">
                 <SelectItem value="all">Все годы</SelectItem>
                 {allYears.map(year => (
                   <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
@@ -107,10 +107,10 @@ const Index = () => {
             </Select>
 
             <Select value={selectedSeason} onValueChange={setSelectedSeason}>
-              <SelectTrigger className="bg-gray-800 border-gray-700">
+              <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
                 <SelectValue placeholder="Сезон" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-gray-800 text-gray-100">
                 <SelectItem value="all">Все сезоны</SelectItem>
                 {allSeasons.map(season => (
                   <SelectItem key={season} value={season}>{season}</SelectItem>
@@ -119,10 +119,10 @@ const Index = () => {
             </Select>
 
             <Select value={selectedStudio} onValueChange={setSelectedStudio}>
-              <SelectTrigger className="bg-gray-800 border-gray-700">
+              <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
                 <SelectValue placeholder="Студия" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-gray-800 text-gray-100">
                 <SelectItem value="all">Все студии</SelectItem>
                 {allStudios.map(studio => (
                   <SelectItem key={studio} value={studio}>{studio}</SelectItem>
@@ -138,8 +138,8 @@ const Index = () => {
                 variant={selectedGenres.includes(genre) ? "default" : "outline"}
                 className={`cursor-pointer ${
                   selectedGenres.includes(genre)
-                    ? "bg-purple-600 hover:bg-purple-700"
-                    : "hover:bg-gray-700"
+                    ? "bg-purple-600 hover:bg-purple-700 text-white"
+                    : "text-gray-100 hover:bg-gray-700"
                 }`}
                 onClick={() => toggleGenre(genre)}
               >
@@ -152,7 +152,7 @@ const Index = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredAnime.map((anime) => (
             <Link to={`/anime/${anime.id}-${anime.titleEn}`} key={anime.id}>
-              <Card className="bg-gray-800 border-gray-700 hover:border-purple-500 transition-all duration-300 cursor-pointer">
+              <Card className="bg-gray-800 border-gray-700 hover:border-purple-500 transition-all duration-300">
                 <CardContent className="p-4">
                   <div className="aspect-[3/4] relative mb-3">
                     <img
@@ -166,7 +166,7 @@ const Index = () => {
                   </h3>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {anime.genres.map((genre) => (
-                      <Badge key={genre} variant="outline" className="text-xs">
+                      <Badge key={genre} variant="outline" className="text-xs text-gray-300">
                         {genre}
                       </Badge>
                     ))}

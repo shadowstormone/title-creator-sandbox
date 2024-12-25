@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -25,8 +25,25 @@ const mockAnimeList = [
   },
 ];
 
+const isAdmin = () => {
+  const token = localStorage.getItem('adminToken');
+  return token === 'your-secure-admin-token'; // В реальном приложении используйте настоящую проверку токена
+};
+
 const Admin = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (!isAdmin()) {
+      toast({
+        title: "Доступ запрещен",
+        description: "У вас нет прав для доступа к админ-панели",
+        variant: "destructive",
+      });
+      navigate('/');
+    }
+  }, [navigate, toast]);
 
   const handleAnimeSubmit = (data: any) => {
     toast({
@@ -36,12 +53,15 @@ const Admin = () => {
     console.log(data);
   };
 
+  if (!isAdmin()) {
+    return null; // Предотвращаем рендер контента для неавторизованных пользователей
+  }
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+    <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
       <div className="max-w-4xl mx-auto space-y-8">
         <h1 className="text-4xl font-bold text-purple-400">Админ панель</h1>
         
-        {/* Форма добавления нового аниме */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="text-purple-400">Добавить новое аниме</CardTitle>
@@ -51,7 +71,6 @@ const Admin = () => {
           </CardContent>
         </Card>
 
-        {/* Список аниме */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="text-purple-400">Список аниме</CardTitle>
@@ -59,22 +78,22 @@ const Admin = () => {
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Название</TableHead>
-                  <TableHead>Серии</TableHead>
-                  <TableHead>Действия</TableHead>
+                <TableRow className="border-gray-700">
+                  <TableHead className="text-gray-300">ID</TableHead>
+                  <TableHead className="text-gray-300">Название</TableHead>
+                  <TableHead className="text-gray-300">Серии</TableHead>
+                  <TableHead className="text-gray-300">Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {mockAnimeList.map((anime) => (
-                  <TableRow key={anime.id}>
-                    <TableCell>{anime.id}</TableCell>
-                    <TableCell>{anime.title}</TableCell>
-                    <TableCell>{anime.uploadedEpisodes} из {anime.totalEpisodes}</TableCell>
+                  <TableRow key={anime.id} className="border-gray-700">
+                    <TableCell className="text-gray-300">{anime.id}</TableCell>
+                    <TableCell className="text-gray-300">{anime.title}</TableCell>
+                    <TableCell className="text-gray-300">{anime.uploadedEpisodes} из {anime.totalEpisodes}</TableCell>
                     <TableCell>
                       <Link to={`/admin/anime/${anime.id}-${anime.titleEn}`}>
-                        <Button variant="outline" size="sm" className="bg-gray-700 border-gray-600">
+                        <Button variant="outline" size="sm" className="bg-gray-700 border-gray-600 text-gray-300">
                           <Edit className="h-4 w-4" />
                         </Button>
                       </Link>
