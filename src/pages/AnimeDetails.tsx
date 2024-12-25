@@ -12,11 +12,18 @@ const AnimeDetails = () => {
   // Временные данные (в будущем будут загружаться из базы данных)
   const animeData = {
     title: "Наруто",
+    titleEn: "Naruto",
     description: "История о молодом ниндзя Наруто Узумаки, мечтающем стать Хокаге — сильнейшим ниндзя и главой своей деревни.",
     image: "https://images.unsplash.com/photo-1518770660439-4636190af475",
     genres: ["Сёнен", "Боевик", "Приключения"],
-    episodes: 220,
-    videoUrl: "https://example.com/video.mp4", // Здесь будет URL вашего видео
+    totalEpisodes: 220,
+    uploadedEpisodes: 210,
+    year: 2002,
+    season: "Осень",
+    studio: "Studio Pierrot",
+    voiceActing: "AniLibria",
+    timing: "Timing Team",
+    videoUrl: "https://example.com/video.mp4",
   };
 
   useEffect(() => {
@@ -79,22 +86,33 @@ const AnimeDetails = () => {
             <div className="space-y-4">
               <h1 className="text-3xl font-bold text-purple-400">{animeData.title}</h1>
               <p className="text-gray-300">{animeData.description}</p>
-              <div>
-                <h3 className="text-xl font-semibold text-purple-400 mb-2">Жанры:</h3>
-                <div className="flex flex-wrap gap-2">
-                  {animeData.genres.map((genre) => (
-                    <span
-                      key={genre}
-                      className="px-3 py-1 bg-purple-600 rounded-full text-sm"
-                    >
-                      {genre}
-                    </span>
-                  ))}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-purple-400 mb-2">Информация:</h3>
+                  <ul className="space-y-2 text-gray-300">
+                    <li>Год: {animeData.year}</li>
+                    <li>Сезон: {animeData.season}</li>
+                    <li>Студия: {animeData.studio}</li>
+                    <li>Серии: {animeData.uploadedEpisodes} из {animeData.totalEpisodes}</li>
+                    <li>Озвучка: {animeData.voiceActing}</li>
+                    <li>Тайминг: {animeData.timing}</li>
+                  </ul>
                 </div>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-purple-400">Количество серий:</h3>
-                <p className="text-gray-300">{animeData.episodes}</p>
+                
+                <div>
+                  <h3 className="text-xl font-semibold text-purple-400 mb-2">Жанры:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {animeData.genres.map((genre) => (
+                      <span
+                        key={genre}
+                        className="px-3 py-1 bg-purple-600 rounded-full text-sm"
+                      >
+                        {genre}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -106,7 +124,7 @@ const AnimeDetails = () => {
                 <SelectValue placeholder="Выберите серию" />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: animeData.episodes }, (_, i) => (
+                {Array.from({ length: animeData.uploadedEpisodes }, (_, i) => (
                   <SelectItem key={i + 1} value={(i + 1).toString()}>
                     Серия {i + 1}
                   </SelectItem>
@@ -115,7 +133,6 @@ const AnimeDetails = () => {
             </Select>
           </div>
 
-          {/* Контейнер для плеера */}
           <div className="artplayer-app w-full aspect-video bg-black rounded-lg overflow-hidden"></div>
         </Card>
       </div>
