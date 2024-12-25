@@ -44,30 +44,21 @@ const allStudios = Array.from(new Set(animeData.map(anime => anime.studio)));
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedYear, setSelectedYear] = useState<string>("all");
-  const [selectedSeason, setSelectedSeason] = useState<string>("all");
-  const [selectedStudio, setSelectedStudio] = useState<string>("all");
+  const [selectedGenre, setSelectedGenre] = useState("all");
+  const [selectedYear, setSelectedYear] = useState("all");
+  const [selectedSeason, setSelectedSeason] = useState("all");
+  const [selectedStudio, setSelectedStudio] = useState("all");
 
   const filteredAnime = animeData.filter((anime) => {
     const matchesSearch = anime.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          anime.titleEn.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGenres = selectedGenres.length === 0 || 
-                         selectedGenres.every(genre => anime.genres.includes(genre));
+    const matchesGenre = selectedGenre === "all" || anime.genres.includes(selectedGenre);
     const matchesYear = selectedYear === "all" || anime.year.toString() === selectedYear;
     const matchesSeason = selectedSeason === "all" || anime.season === selectedSeason;
     const matchesStudio = selectedStudio === "all" || anime.studio === selectedStudio;
 
-    return matchesSearch && matchesGenres && matchesYear && matchesSeason && matchesStudio;
+    return matchesSearch && matchesGenre && matchesYear && matchesSeason && matchesStudio;
   });
-
-  const toggleGenre = (genre: string) => {
-    setSelectedGenres(prev =>
-      prev.includes(genre)
-        ? prev.filter(g => g !== genre)
-        : [...prev, genre]
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
@@ -129,23 +120,18 @@ const Index = () => {
                 ))}
               </SelectContent>
             </Select>
-          </div>
 
-          <div className="flex flex-wrap gap-2">
-            {allGenres.map((genre) => (
-              <Badge
-                key={genre}
-                variant={selectedGenres.includes(genre) ? "default" : "outline"}
-                className={`cursor-pointer ${
-                  selectedGenres.includes(genre)
-                    ? "bg-purple-600 hover:bg-purple-700 text-white"
-                    : "text-gray-100 hover:bg-gray-700"
-                }`}
-                onClick={() => toggleGenre(genre)}
-              >
-                {genre}
-              </Badge>
-            ))}
+            <Select value={selectedGenre} onValueChange={setSelectedGenre}>
+              <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
+                <SelectValue placeholder="Жанр" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 text-gray-100">
+                <SelectItem value="all">Все жанры</SelectItem>
+                {allGenres.map(genre => (
+                  <SelectItem key={genre} value={genre}>{genre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
