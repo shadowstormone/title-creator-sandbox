@@ -26,7 +26,7 @@ interface GenreSelectProps {
   onChange: (genres: string[]) => void;
 }
 
-const GenreSelect = ({ selectedGenres, onChange }: GenreSelectProps) => {
+const GenreSelect = ({ selectedGenres = [], onChange }: GenreSelectProps) => {
   const [open, setOpen] = useState(false);
 
   const toggleGenre = (genre: string) => {
@@ -53,6 +53,7 @@ const GenreSelect = ({ selectedGenres, onChange }: GenreSelectProps) => {
             {genres.map((genre) => (
               <CommandItem
                 key={genre}
+                value={genre}
                 onSelect={() => toggleGenre(genre)}
                 className="cursor-pointer"
               >
