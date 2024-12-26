@@ -3,11 +3,18 @@ import { useParams } from "react-router-dom";
 import Artplayer from "artplayer";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import CommentList from "@/components/comments/CommentList";
+import AnimeRating from "@/components/anime/AnimeRating";
+import { useToast } from "@/components/ui/use-toast";
+import { Comment, Rating } from "@/lib/types";
 
 const AnimeDetails = () => {
   const { id } = useParams();
+  const { toast } = useToast();
   const [player, setPlayer] = useState<Artplayer | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState("1");
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [ratings, setRatings] = useState<Rating[]>([]);
 
   // Временные данные (в будущем будут загружаться из базы данных)
   const animeData = {
@@ -71,6 +78,88 @@ const AnimeDetails = () => {
     }
   };
 
+  const handleAddComment = (content: string) => {
+    const newComment: Comment = {
+      id: String(comments.length + 1),
+      userId: "1", // Replace with actual user ID
+      animeId: Number(id),
+      content,
+      createdAt: new Date(),
+      likes: [],
+      dislikes: [],
+    };
+    setComments([...comments, newComment]);
+    toast({
+      title: "Комментарий добавлен",
+      description: "Ваш комментарий успешно добавлен",
+    });
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setComments(comments.filter(c => c.id !== commentId));
+    toast({
+      title: "Комментарий удален",
+      description: "Комментарий успешно удален",
+    });
+  };
+
+  const handleEditComment = (commentId: string, content: string) => {
+    setComments(comments.map(c => 
+      c.id === commentId ? { ...c, content } : c
+    ));
+    toast({
+      title: "Комментарий изменен",
+      description: "Комментарий успешно изменен",
+    });
+  };
+
+  const handleLikeComment = (commentId: string) => {
+    setComments(comments.map(c => {
+      if (c.id === commentId) {
+        const hasLiked = c.likes.includes("1"); // Replace with actual user ID
+        const likes = hasLiked
+          ? c.likes.filter(id => id !== "1")
+          : [...c.likes, "1"];
+        return {
+          ...c,
+          likes,
+          dislikes: c.dislikes.filter(id => id !== "1"),
+        };
+      }
+      return c;
+    }));
+  };
+
+  const handleDislikeComment = (commentId: string) => {
+    setComments(comments.map(c => {
+      if (c.id === commentId) {
+        const hasDisliked = c.dislikes.includes("1"); // Replace with actual user ID
+        const dislikes = hasDisliked
+          ? c.dislikes.filter(id => id !== "1")
+          : [...c.dislikes, "1"];
+        return {
+          ...c,
+          dislikes,
+          likes: c.likes.filter(id => id !== "1"),
+        };
+      }
+      return c;
+    }));
+  };
+
+  const handleRate = (score: number) => {
+    const newRating: Rating = {
+      userId: "1", // Replace with actual user ID
+      animeId: Number(id),
+      score,
+    };
+    setRatings([...ratings.filter(r => r.userId !== "1"), newRating]);
+    toast({
+      title: "Оценка добавлена",
+      description: "Ваша оценка успешно сохранена",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-6xl mx-auto">
@@ -82,6 +171,13 @@ const AnimeDetails = () => {
                 alt={animeData.title}
                 className="w-full h-[400px] object-cover rounded-lg"
               />
+              <div className="mt-4">
+                <AnimeRating
+                  ratings={ratings}
+                  animeId={Number(id)}
+                  onRate={handleRate}
+                />
+              </div>
             </div>
             <div className="space-y-4">
               <h1 className="text-3xl font-bold text-purple-400">{animeData.title}</h1>
@@ -134,6 +230,19 @@ const AnimeDetails = () => {
           </div>
 
           <div className="artplayer-app w-full aspect-video bg-black rounded-lg overflow-hidden"></div>
+        </Card>
+
+        <Card className="bg-gray-800 border-gray-700 p-6">
+          <h2 className="text-2xl font-bold text-purple-400 mb-6">Комментарии</h2>
+          <CommentList
+            animeId={Number(id)}
+            comments={comments}
+            onAddComment={handleAddComment}
+            onDeleteComment={handleDeleteComment}
+            onEditComment={handleEditComment}
+            onLikeComment={handleLikeComment}
+            onDislikeComment={handleDislikeComment}
+          />
         </Card>
       </div>
     </div>
