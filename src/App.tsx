@@ -27,8 +27,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/anime/:id-:titleEn" element={<AnimeDetails />} />
-            <Route path="/admin/anime/:id-:titleEn" element={<AnimeEdit />} />
+            <Route path="/anime/:id/:titleEn" element={<AnimeDetails />} />
+            <Route path="/admin/anime/:id/:titleEn" element={<AnimeEdit />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />

@@ -137,7 +137,7 @@ const Index = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredAnime.map((anime) => (
-            <Link to={`/anime/${anime.id}-${anime.titleEn}`} key={anime.id}>
+            <Link to={`/anime/${anime.id}/${anime.titleEn}`} key={anime.id}>
               <Card className="bg-gray-800 border-gray-700 hover:border-purple-500 transition-all duration-300">
                 <CardContent className="p-4">
                   <div className="aspect-[3/4] relative mb-3">

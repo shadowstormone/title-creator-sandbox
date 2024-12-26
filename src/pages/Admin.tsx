@@ -92,9 +92,11 @@ const Admin = () => {
                   <TableRow key={anime.id} className="border-gray-700">
                     <TableCell className="text-gray-300">{anime.id}</TableCell>
                     <TableCell className="text-gray-300">{anime.title}</TableCell>
-                    <TableCell className="text-gray-300">{anime.uploadedEpisodes} из {anime.totalEpisodes}</TableCell>
+                    <TableCell className="text-gray-300">
+                      {anime.uploadedEpisodes} из {anime.totalEpisodes}
+                    </TableCell>
                     <TableCell>
-                      <Link to={`/admin/anime/${anime.id}-${anime.titleEn}`}>
+                      <Link to={`/admin/anime/${anime.id}/${anime.titleEn}`}>
                         <Button variant="outline" size="sm" className="bg-gray-700 border-gray-600 text-gray-300">
                           <Edit className="h-4 w-4" />
                         </Button>
