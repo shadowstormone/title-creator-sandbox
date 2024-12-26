@@ -3,19 +3,19 @@ drop policy if exists "Give public access to anime-images" on storage.objects;
 drop policy if exists "Enable image uploads for authenticated users only" on storage.objects;
 drop table if exists public.animes;
 
--- Create the animes table
+-- Create the animes table with snake_case column names
 create table public.animes (
   id bigint primary key generated always as identity,
   title text not null,
-  titleEn text not null,
+  title_en text not null,
   description text,
   genres text[] default '{}',
-  totalEpisodes integer default 0,
-  uploadedEpisodes integer default 0,
+  total_episodes integer default 0,
+  uploaded_episodes integer default 0,
   year integer,
   season text,
   studio text,
-  voiceActing text,
+  voice_acting text,
   timing text,
   image_url text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -35,7 +35,7 @@ create policy "Enable update for authenticated users only" on public.animes
   for update using (auth.role() = 'authenticated');
 
 -- Create indexes
-create index animes_titleEn_idx on public.animes (titleEn);
+create index animes_title_en_idx on public.animes (title_en);
 create index animes_created_at_idx on public.animes (created_at);
 
 -- Create storage bucket for anime images if it doesn't exist

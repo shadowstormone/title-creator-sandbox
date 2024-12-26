@@ -110,8 +110,19 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
         console.log('Image uploaded successfully:', image_url);
       }
 
+      // Convert camelCase to snake_case for Supabase
       const animeData = {
-        ...formData,
+        title: formData.title,
+        title_en: formData.titleEn,
+        description: formData.description,
+        genres: formData.genres,
+        total_episodes: formData.totalEpisodes,
+        uploaded_episodes: formData.uploadedEpisodes,
+        year: formData.year,
+        season: formData.season,
+        studio: formData.studio,
+        voice_acting: formData.voiceActing,
+        timing: formData.timing,
         image_url,
         created_at: new Date().toISOString(),
       };
@@ -137,7 +148,7 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
       });
 
       if (!initialData && data) {
-        navigate(`/anime/${data.id}/${data.titleEn}`);
+        navigate(`/anime/${data.id}/${data.title_en}`);
       }
     } catch (error) {
       console.error('Error in handleSubmit:', error);
