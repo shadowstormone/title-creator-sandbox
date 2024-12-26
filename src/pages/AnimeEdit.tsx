@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AnimeForm from "@/components/admin/AnimeForm";
 import { useToast } from "@/components/ui/use-toast";
@@ -7,30 +7,55 @@ import { supabase } from "@/lib/supabaseClient";
 
 const AnimeEdit = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [animeData, setAnimeData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAnime = async () => {
-      if (!id) return;
+      if (!id) {
+        navigate('/admin');
+        return;
+      }
       
       try {
+        console.log('Fetching anime with ID:', id);
         const { data, error } = await supabase
           .from('animes')
           .select('*')
           .eq('id', id)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error details:', error);
+          if (error.code === 'PGRST116') {
+            toast({
+              title: "Аниме не найдено",
+              description: "Запрошенное аниме не существует",
+              variant: "destructive",
+            });
+            navigate('/admin');
+            return;
+          }
+          throw error;
+        }
         
         if (data) {
+          console.log('Fetched anime data:', data);
           // Ensure genres is always an array
           const formattedData = {
             ...data,
             genres: Array.isArray(data.genres) ? data.genres : []
           };
           setAnimeData(formattedData);
+        } else {
+          toast({
+            title: "Аниме не найдено",
+            description: "Запрошенное аниме не существует",
+            variant: "destructive",
+          });
+          navigate('/admin');
         }
       } catch (error) {
         console.error('Error fetching anime:', error);
@@ -39,16 +64,18 @@ const AnimeEdit = () => {
           description: "Не удалось загрузить данные аниме",
           variant: "destructive",
         });
+        navigate('/admin');
       } finally {
         setLoading(false);
       }
     };
 
     fetchAnime();
-  }, [id, toast]);
+  }, [id, toast, navigate]);
 
   const handleAnimeUpdate = async (data: any) => {
     try {
+      console.log('Updating anime with data:', data);
       const { error } = await supabase
         .from('animes')
         .update({
@@ -63,6 +90,8 @@ const AnimeEdit = () => {
         title: "Успешно",
         description: "Аниме обновлено",
       });
+      
+      navigate('/admin');
     } catch (error) {
       console.error('Error updating anime:', error);
       toast({
@@ -75,6 +104,10 @@ const AnimeEdit = () => {
 
   if (loading) {
     return <div className="p-6">Загрузка...</div>;
+  }
+
+  if (!animeData) {
+    return null; // We'll navigate away before this renders
   }
 
   return (
