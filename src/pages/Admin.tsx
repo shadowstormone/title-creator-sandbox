@@ -25,42 +25,38 @@ const mockAnimeList = [
   },
 ];
 
-localStorage.setItem('adminToken', 'your-secure-admin-token');
-
-const isAdmin = () => {
-  const token = localStorage.getItem('adminToken');
-  return token === 'your-secure-admin-token'; // В реальном приложении используйте настоящую проверку токена
-};
-
 const Admin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [animeList, setAnimeList] = useState(mockAnimeList);
   
-  useEffect(() => {
-    if (!isAdmin()) {
-      toast({
-        title: "Доступ запрещен",
-        description: "У вас нет прав для доступа к админ-панели",
-        variant: "destructive",
-      });
-      navigate('/');
-    }
-  }, [navigate, toast]);
-
   const handleAnimeSubmit = (data: any) => {
+    // Создаем новый ID (в реальном приложении это будет делать бэкенд)
+    const newId = animeList.length + 1;
+    
+    // Создаем новый объект аниме
+    const newAnime = {
+      id: newId,
+      title: data.title,
+      titleEn: data.titleEn,
+      totalEpisodes: parseInt(data.totalEpisodes),
+      uploadedEpisodes: parseInt(data.uploadedEpisodes)
+    };
+    
+    // Добавляем новое аниме в список
+    setAnimeList(prev => [...prev, newAnime]);
+    
     toast({
       title: "Аниме добавлено",
       description: "Новое аниме успешно добавлено в базу данных",
     });
-    console.log(data);
+    
+    // Перенаправляем на главную страницу
+    navigate('/');
   };
 
-  if (!isAdmin()) {
-    return null; // Предотвращаем рендер контента для неавторизованных пользователей
-  }
-
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
+    <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-4xl mx-auto space-y-8">
         <h1 className="text-4xl font-bold text-purple-400">Админ панель</h1>
         
@@ -88,16 +84,16 @@ const Admin = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockAnimeList.map((anime) => (
+                {animeList.map((anime) => (
                   <TableRow key={anime.id} className="border-gray-700">
-                    <TableCell className="text-gray-300">{anime.id}</TableCell>
-                    <TableCell className="text-gray-300">{anime.title}</TableCell>
-                    <TableCell className="text-gray-300">
+                    <TableCell className="text-white">{anime.id}</TableCell>
+                    <TableCell className="text-white">{anime.title}</TableCell>
+                    <TableCell className="text-white">
                       {anime.uploadedEpisodes} из {anime.totalEpisodes}
                     </TableCell>
                     <TableCell>
                       <Link to={`/admin/anime/${anime.id}/${anime.titleEn}`}>
-                        <Button variant="outline" size="sm" className="bg-gray-700 border-gray-600 text-gray-300">
+                        <Button variant="outline" size="sm" className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">
                           <Edit className="h-4 w-4" />
                         </Button>
                       </Link>
