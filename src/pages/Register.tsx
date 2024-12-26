@@ -15,6 +15,27 @@ const Register = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate password length
+    if (password.length < 6) {
+      toast({
+        title: "Ошибка",
+        description: "Пароль должен содержать минимум 6 символов",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate username
+    if (username.length < 3) {
+      toast({
+        title: "Ошибка",
+        description: "Имя пользователя должно содержать минимум 3 символа",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await register(email, password, username);
       toast({
@@ -22,10 +43,21 @@ const Register = () => {
         description: "Добро пожаловать!",
       });
       navigate("/");
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      let errorMessage = "Не удалось зарегистрироваться";
+      
+      if (error.message?.includes("weak_password")) {
+        errorMessage = "Пароль слишком простой. Используйте минимум 6 символов";
+      } else if (error.message?.includes("email")) {
+        errorMessage = "Некорректный email адрес";
+      } else if (error.message?.includes("already registered")) {
+        errorMessage = "Этот email уже зарегистрирован";
+      }
+      
       toast({
         title: "Ошибка",
-        description: "Не удалось зарегистрироваться",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -50,6 +82,7 @@ const Register = () => {
                 id="username"
                 type="text"
                 required
+                minLength={3}
                 className="mt-1"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -78,10 +111,14 @@ const Register = () => {
                 id="password"
                 type="password"
                 required
+                minLength={6}
                 className="mt-1"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              <p className="mt-1 text-sm text-gray-400">
+                Минимум 6 символов
+              </p>
             </div>
 
             <Button type="submit" className="w-full">
