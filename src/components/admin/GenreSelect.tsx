@@ -7,6 +7,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -48,24 +49,26 @@ const GenreSelect = ({ selectedGenres = [], onChange }: GenreSelectProps) => {
       <PopoverContent className="w-[200px] p-0">
         <Command>
           <CommandInput placeholder="Поиск жанра..." />
-          <CommandEmpty>Жанр не найден</CommandEmpty>
-          <CommandGroup>
-            {genres.map((genre) => (
-              <CommandItem
-                key={genre}
-                value={genre}
-                onSelect={() => toggleGenre(genre)}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    selectedGenres.includes(genre) ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {genre}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+          <CommandList>
+            <CommandEmpty>Жанр не найден</CommandEmpty>
+            <CommandGroup>
+              {genres.map((genre) => (
+                <CommandItem
+                  key={genre}
+                  value={genre}
+                  onSelect={() => toggleGenre(genre)}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selectedGenres.includes(genre) ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {genre}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
