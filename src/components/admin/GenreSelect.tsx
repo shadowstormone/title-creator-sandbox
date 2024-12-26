@@ -47,7 +47,7 @@ const GenreSelect = ({ selectedGenres = [], onChange }: GenreSelectProps) => {
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
         <Command>
-          <CommandInput placeholder="Поиск жанра..." className="h-9" />
+          <CommandInput placeholder="Поиск жанра..." />
           <CommandEmpty>Жанр не найден</CommandEmpty>
           <CommandGroup>
             {genres.map((genre) => (
@@ -55,7 +55,6 @@ const GenreSelect = ({ selectedGenres = [], onChange }: GenreSelectProps) => {
                 key={genre}
                 value={genre}
                 onSelect={() => toggleGenre(genre)}
-                className="cursor-pointer"
               >
                 <Check
                   className={cn(
