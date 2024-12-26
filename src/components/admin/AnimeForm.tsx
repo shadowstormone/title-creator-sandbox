@@ -72,31 +72,36 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
     setIsSubmitting(true);
     
     try {
-      console.log('Submitting form data:', formData); // Debug log
+      console.log('Submitting form data:', formData);
       
-      let imageUrl = null;
+      let image_url = null;
       if (image) {
-        console.log('Uploading image...'); // Debug log
+        console.log('Uploading image...');
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('anime-images')
           .upload(`${Date.now()}-${image.name}`, image);
         
         if (uploadError) {
-          console.error('Image upload error:', uploadError); // Debug log
+          console.error('Image upload error:', uploadError);
           throw uploadError;
         }
         
-        imageUrl = uploadData.path;
-        console.log('Image uploaded successfully:', imageUrl); // Debug log
+        // Get the public URL for the uploaded image
+        const { data: { publicUrl } } = supabase.storage
+          .from('anime-images')
+          .getPublicUrl(uploadData.path);
+        
+        image_url = publicUrl;
+        console.log('Image uploaded successfully:', image_url);
       }
 
       const animeData = {
         ...formData,
-        imageUrl,
+        image_url,
         created_at: new Date().toISOString(),
       };
 
-      console.log('Inserting anime data:', animeData); // Debug log
+      console.log('Inserting anime data:', animeData);
       
       const { data, error } = await supabase
         .from('animes')
@@ -105,11 +110,11 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
         .single();
 
       if (error) {
-        console.error('Database insertion error:', error); // Debug log
+        console.error('Database insertion error:', error);
         throw error;
       }
 
-      console.log('Anime data inserted successfully:', data); // Debug log
+      console.log('Anime data inserted successfully:', data);
 
       toast({
         title: initialData ? "Аниме обновлено" : "Аниме добавлено",
