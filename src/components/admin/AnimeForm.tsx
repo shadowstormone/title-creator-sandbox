@@ -44,6 +44,7 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
 
   const [image, setImage] = useState<File | null>(null);
   const [video, setVideo] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -68,15 +69,25 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    
     try {
+      console.log('Submitting form data:', formData); // Debug log
+      
       let imageUrl = null;
       if (image) {
-        const { data, error } = await supabase.storage
+        console.log('Uploading image...'); // Debug log
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from('anime-images')
           .upload(`${Date.now()}-${image.name}`, image);
         
-        if (error) throw error;
-        imageUrl = data.path;
+        if (uploadError) {
+          console.error('Image upload error:', uploadError); // Debug log
+          throw uploadError;
+        }
+        
+        imageUrl = uploadData.path;
+        console.log('Image uploaded successfully:', imageUrl); // Debug log
       }
 
       const animeData = {
@@ -85,29 +96,38 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
         created_at: new Date().toISOString(),
       };
 
+      console.log('Inserting anime data:', animeData); // Debug log
+      
       const { data, error } = await supabase
         .from('animes')
         .insert([animeData])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database insertion error:', error); // Debug log
+        throw error;
+      }
+
+      console.log('Anime data inserted successfully:', data); // Debug log
 
       toast({
         title: initialData ? "Аниме обновлено" : "Аниме добавлено",
         description: initialData ? "Изменения сохранены успешно" : "Новое аниме добавлено успешно",
       });
 
-      if (!initialData) {
+      if (!initialData && data) {
         navigate(`/anime/${data.id}/${data.titleEn}`);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in handleSubmit:', error);
       toast({
         title: "Ошибка",
         description: "Произошла ошибка при сохранении",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -133,6 +153,7 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
             variant="outline"
             className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
             onClick={() => document.getElementById('image-upload')?.click()}
+            disabled={isSubmitting}
           >
             <Upload className="mr-2 h-4 w-4" />
             Загрузить изображение
@@ -143,13 +164,18 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
             accept="image/*"
             className="hidden"
             onChange={handleImageChange}
+            disabled={isSubmitting}
           />
           {image && <span className="text-sm text-white">{image.name}</span>}
         </div>
       </div>
 
-      <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-        {initialData ? "Сохранить изменения" : "Добавить аниме"}
+      <Button 
+        type="submit" 
+        className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Сохранение..." : (initialData ? "Сохранить изменения" : "Добавить аниме")}
       </Button>
     </form>
   );
