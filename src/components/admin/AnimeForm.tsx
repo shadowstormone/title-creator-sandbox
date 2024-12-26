@@ -1,17 +1,19 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Upload } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import GenreSelect from "./GenreSelect";
+import BasicAnimeInfo from "./BasicAnimeInfo";
+import EpisodeInfo from "./EpisodeInfo";
+import { supabase } from "@/lib/supabaseClient";
 
 interface AnimeFormProps {
   initialData?: {
     title: string;
     titleEn: string;
     description: string;
-    genres: string;
+    genres: string[];
     totalEpisodes: number;
     uploadedEpisodes: number;
     year: number;
@@ -30,7 +32,7 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
     title: "",
     titleEn: "",
     description: "",
-    genres: "",
+    genres: [],
     totalEpisodes: 0,
     uploadedEpisodes: 0,
     year: new Date().getFullYear(),
@@ -48,6 +50,10 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleGenreChange = (selectedGenres: string[]) => {
+    setFormData(prev => ({ ...prev, genres: selectedGenres }));
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setImage(e.target.files[0]);
@@ -63,16 +69,40 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await onSubmit({ ...formData, image, video });
+      let imageUrl = null;
+      if (image) {
+        const { data, error } = await supabase.storage
+          .from('anime-images')
+          .upload(`${Date.now()}-${image.name}`, image);
+        
+        if (error) throw error;
+        imageUrl = data.path;
+      }
+
+      const animeData = {
+        ...formData,
+        imageUrl,
+        created_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('animes')
+        .insert([animeData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
       toast({
         title: initialData ? "Аниме обновлено" : "Аниме добавлено",
         description: initialData ? "Изменения сохранены успешно" : "Новое аниме добавлено успешно",
       });
+
       if (!initialData) {
-        // Если это новое аниме, перенаправляем на главную страницу
-        navigate('/');
+        navigate(`/anime/${data.id}/${data.titleEn}`);
       }
     } catch (error) {
+      console.error('Error:', error);
       toast({
         title: "Ошибка",
         description: "Произошла ошибка при сохранении",
@@ -83,121 +113,17 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block mb-2 text-white">Название</label>
-          <Input
-            name="title"
-            value={formData.title}
-            onChange={handleChange}
-            className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-2 text-white">Английское название</label>
-          <Input
-            name="titleEn"
-            value={formData.titleEn}
-            onChange={handleChange}
-            className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-2 text-white">Год</label>
-          <Input
-            type="number"
-            name="year"
-            value={formData.year}
-            onChange={handleChange}
-            className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-2 text-white">Сезон</label>
-          <Input
-            name="season"
-            value={formData.season}
-            onChange={handleChange}
-            className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-2 text-white">Студия</label>
-          <Input
-            name="studio"
-            value={formData.studio}
-            onChange={handleChange}
-            className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-2 text-white">Всего серий</label>
-          <Input
-            type="number"
-            name="totalEpisodes"
-            value={formData.totalEpisodes}
-            onChange={handleChange}
-            className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-2 text-white">Загружено серий</label>
-          <Input
-            type="number"
-            name="uploadedEpisodes"
-            value={formData.uploadedEpisodes}
-            onChange={handleChange}
-            className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-2 text-white">Озвучка</label>
-          <Input
-            name="voiceActing"
-            value={formData.voiceActing}
-            onChange={handleChange}
-            className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-2 text-white">Тайминг</label>
-          <Input
-            name="timing"
-            value={formData.timing}
-            onChange={handleChange}
-            className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-          />
-        </div>
-      </div>
-
+      <BasicAnimeInfo formData={formData} onChange={handleChange} />
+      
       <div>
-        <label className="block mb-2 text-white">Описание</label>
-        <Textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-          rows={4}
+        <label className="block mb-2 text-white">Жанры</label>
+        <GenreSelect
+          selectedGenres={formData.genres}
+          onChange={handleGenreChange}
         />
       </div>
 
-      <div>
-        <label className="block mb-2 text-white">Жанры (через запятую)</label>
-        <Input
-          name="genres"
-          value={formData.genres}
-          onChange={handleChange}
-          className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-        />
-      </div>
+      <EpisodeInfo formData={formData} onChange={handleChange} />
 
       <div>
         <label className="block mb-2 text-white">Обложка</label>
