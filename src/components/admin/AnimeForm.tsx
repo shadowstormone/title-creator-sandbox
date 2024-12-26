@@ -7,6 +7,7 @@ import GenreSelect from "./GenreSelect";
 import BasicAnimeInfo from "./BasicAnimeInfo";
 import EpisodeInfo from "./EpisodeInfo";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AnimeFormProps {
   initialData?: {
@@ -28,6 +29,7 @@ interface AnimeFormProps {
 const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session } = useAuth();
   const [formData, setFormData] = useState(initialData || {
     title: "",
     titleEn: "",
@@ -69,6 +71,16 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!session) {
+      toast({
+        title: "Ошибка",
+        description: "Необходимо авторизоваться",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -77,19 +89,22 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
       let image_url = null;
       if (image) {
         console.log('Uploading image...');
+        const filePath = `${Date.now()}-${image.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('anime-images')
-          .upload(`${Date.now()}-${image.name}`, image);
+          .upload(filePath, image, {
+            upsert: true,
+            cacheControl: '3600'
+          });
         
         if (uploadError) {
           console.error('Image upload error:', uploadError);
           throw uploadError;
         }
         
-        // Get the public URL for the uploaded image
         const { data: { publicUrl } } = supabase.storage
           .from('anime-images')
-          .getPublicUrl(uploadData.path);
+          .getPublicUrl(filePath);
         
         image_url = publicUrl;
         console.log('Image uploaded successfully:', image_url);
@@ -178,7 +193,7 @@ const AnimeForm = ({ initialData, onSubmit }: AnimeFormProps) => {
       <Button 
         type="submit" 
         className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !session}
       >
         {isSubmitting ? "Сохранение..." : (initialData ? "Сохранить изменения" : "Добавить аниме")}
       </Button>

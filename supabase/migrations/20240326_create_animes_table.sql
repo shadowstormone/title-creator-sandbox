@@ -1,3 +1,8 @@
+-- Drop existing objects if they exist
+drop policy if exists "Give public access to anime-images" on storage.objects;
+drop policy if exists "Enable image uploads for authenticated users only" on storage.objects;
+drop table if exists public.animes;
+
 -- Create the animes table
 create table public.animes (
   id bigint primary key generated always as identity,
@@ -12,7 +17,7 @@ create table public.animes (
   studio text,
   voiceActing text,
   timing text,
-  image_url text, -- Changed from imageUrl to image_url to follow SQL conventions
+  image_url text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -33,9 +38,12 @@ create policy "Enable update for authenticated users only" on public.animes
 create index animes_titleEn_idx on public.animes (titleEn);
 create index animes_created_at_idx on public.animes (created_at);
 
--- Create storage bucket for anime images
-insert into storage.buckets (id, name, public) 
-values ('anime-images', 'anime-images', true);
+-- Create storage bucket for anime images if it doesn't exist
+insert into storage.buckets (id, name, public)
+select 'anime-images', 'anime-images', true
+where not exists (
+  select 1 from storage.buckets where id = 'anime-images'
+);
 
 -- Set up storage policies
 create policy "Give public access to anime-images"
@@ -48,3 +56,8 @@ with check (
   bucket_id = 'anime-images' 
   and auth.role() = 'authenticated'
 );
+
+-- Grant necessary permissions
+grant usage on schema public to anon, authenticated;
+grant all on public.animes to anon, authenticated;
+grant all on public.animes_id_seq to anon, authenticated;
