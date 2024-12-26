@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Edit } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import AnimeForm from "@/components/admin/AnimeForm";
+import { supabase } from "@/lib/supabaseClient";
 
 // Временные данные (в будущем будут загружаться из базы данных)
 const mockAnimeList = [
@@ -13,47 +14,118 @@ const mockAnimeList = [
     id: 1, 
     title: "Наруто", 
     titleEn: "naruto",
+    description: "Naruto description",
+    genres: ["action", "adventure"],
     totalEpisodes: 220,
-    uploadedEpisodes: 210
+    uploadedEpisodes: 210,
+    year: 2002,
+    season: "Fall",
+    studio: "Studio Pierrot",
+    voiceActing: "Japanese",
+    timing: "24 min per ep"
   },
   { 
     id: 2, 
     title: "Блич", 
     titleEn: "bleach",
+    description: "Bleach description",
+    genres: ["action", "supernatural"],
     totalEpisodes: 366,
-    uploadedEpisodes: 366
+    uploadedEpisodes: 366,
+    year: 2004,
+    season: "Fall",
+    studio: "Studio Pierrot",
+    voiceActing: "Japanese",
+    timing: "24 min per ep"
   },
 ];
 
 const Admin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [animeList, setAnimeList] = useState(mockAnimeList);
+  const [animeList, setAnimeList] = useState([]);
+  const [loading, setLoading] = useState(true);
   
-  const handleAnimeSubmit = (data: any) => {
-    // Создаем новый ID (в реальном приложении это будет делать бэкенд)
-    const newId = animeList.length + 1;
-    
-    // Создаем новый объект аниме
-    const newAnime = {
-      id: newId,
-      title: data.title,
-      titleEn: data.titleEn,
-      totalEpisodes: parseInt(data.totalEpisodes),
-      uploadedEpisodes: parseInt(data.uploadedEpisodes)
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        // Check if we have any anime in the database
+        const { data: existingAnime, error: fetchError } = await supabase
+          .from('animes')
+          .select('*');
+
+        if (fetchError) throw fetchError;
+
+        if (!existingAnime || existingAnime.length === 0) {
+          // If no anime exists, insert the mock data
+          console.log('No anime found, inserting mock data...');
+          const { error: insertError } = await supabase
+            .from('animes')
+            .insert(mockAnimeList.map(({ id, ...rest }) => rest)); // Remove id as it's auto-generated
+
+          if (insertError) throw insertError;
+          
+          toast({
+            title: "База данных инициализирована",
+            description: "Тестовые данные успешно добавлены",
+          });
+        }
+
+        // Fetch the current data
+        const { data: currentAnime, error: refetchError } = await supabase
+          .from('animes')
+          .select('*');
+
+        if (refetchError) throw refetchError;
+        
+        setAnimeList(currentAnime);
+      } catch (error) {
+        console.error('Error initializing data:', error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить данные",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     };
-    
-    // Добавляем новое аниме в список
-    setAnimeList(prev => [...prev, newAnime]);
-    
-    toast({
-      title: "Аниме добавлено",
-      description: "Новое аниме успешно добавлено в базу данных",
-    });
-    
-    // Перенаправляем на главную страницу
-    navigate('/');
+
+    initializeData();
+  }, [toast]);
+
+  const handleAnimeSubmit = async (data: any) => {
+    try {
+      const { error } = await supabase
+        .from('animes')
+        .insert([data]);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Аниме добавлено",
+        description: "Новое аниме успешно добавлено в базу данных",
+      });
+      
+      // Refresh the anime list
+      const { data: updatedAnime } = await supabase
+        .from('animes')
+        .select('*');
+      
+      setAnimeList(updatedAnime || []);
+    } catch (error) {
+      console.error('Error adding anime:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось добавить аниме",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return <div className="min-h-screen bg-gray-900 text-white p-6">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
