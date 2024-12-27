@@ -3,14 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { BarChart, LineChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { Anime } from "@/lib/types";
 
 const Statistics = () => {
   const { toast } = useToast();
   const [stats, setStats] = useState({
     totalAnime: 0,
     totalEpisodes: 0,
-    popularGenres: [],
-    viewsByMonth: [],
+    popularGenres: [] as { name: string; count: number }[],
+    viewsByMonth: [] as { month: string; views: number }[],
   });
   const [loading, setLoading] = useState(true);
 
@@ -27,13 +28,18 @@ const Statistics = () => {
 
       if (animeError) throw animeError;
 
+      const typedAnimeData = animeData as Anime[];
+
       // Calculate statistics
-      const totalAnime = animeData?.length || 0;
-      const totalEpisodes = animeData?.reduce((sum, anime) => sum + (anime.total_episodes || 0), 0) || 0;
+      const totalAnime = typedAnimeData?.length || 0;
+      const totalEpisodes = typedAnimeData?.reduce((sum, anime) => {
+        const episodes = typeof anime.total_episodes === 'number' ? anime.total_episodes : 0;
+        return sum + episodes;
+      }, 0);
       
       // Calculate genre popularity
-      const genreCounts = {};
-      animeData?.forEach(anime => {
+      const genreCounts: Record<string, number> = {};
+      typedAnimeData?.forEach(anime => {
         anime.genres?.forEach(genre => {
           genreCounts[genre] = (genreCounts[genre] || 0) + 1;
         });
