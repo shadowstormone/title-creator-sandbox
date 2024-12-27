@@ -4,16 +4,46 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { Link } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email format
+    if (!validateEmail(email)) {
+      toast({
+        title: "Ошибка",
+        description: "Пожалуйста, введите корректный email адрес",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      toast({
+        title: "Ошибка",
+        description: "Пароль должен содержать минимум 6 символов",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
       await login(email, password);
       toast({
@@ -21,12 +51,26 @@ const Login = () => {
         description: "Добро пожаловать!",
       });
       navigate("/");
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Login error:", error);
+      
+      let errorMessage = "Не удалось войти в систему";
+      
+      if (error.message?.includes("invalid_credentials")) {
+        errorMessage = "Неверный email или пароль";
+      } else if (error.message?.includes("email")) {
+        errorMessage = "Некорректный email адрес";
+      } else if (error.message?.includes("password")) {
+        errorMessage = "Некорректный пароль";
+      }
+      
       toast({
         title: "Ошибка",
-        description: "Неверный email или пароль",
+        description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -52,6 +96,7 @@ const Login = () => {
                 className="mt-1"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
               />
             </div>
 
@@ -66,11 +111,20 @@ const Login = () => {
                 className="mt-1"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
             </div>
 
-            <Button type="submit" className="w-full">
-              Войти
+            <div className="flex items-center justify-between">
+              <div className="text-sm">
+                <Link to="/register" className="text-blue-400 hover:text-blue-300">
+                  Нет аккаунта? Зарегистрируйтесь
+                </Link>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Вход..." : "Войти"}
             </Button>
           </form>
         </div>
