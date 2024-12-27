@@ -36,17 +36,17 @@ export interface Rating {
 export interface Anime {
   id: number;
   title: string;
-  titleEn: string;
+  title_en: string;
   description: string;
   genres: string[];
-  totalEpisodes: number;
-  uploadedEpisodes: number;
+  total_episodes: number;
+  uploaded_episodes: number;
   year: number;
   season: string;
   studio: string;
-  voiceActing: string;
+  voice_acting: string;
   timing: string;
-  imageUrl?: string;
+  image_url?: string;
   ratings: Rating[];
   comments: Comment[];
 }
