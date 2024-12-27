@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabaseClient";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -13,10 +14,28 @@ const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Email validation function
+  // Email validation function with more permissive regex
   const isValidEmail = (email: string) => {
-    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+
+  const createProfile = async (userId: string, username: string) => {
+    const { error } = await supabase
+      .from('profiles')
+      .insert([
+        {
+          id: userId,
+          username,
+          role: 'user',
+          is_superadmin: false,
+        }
+      ]);
+
+    if (error) {
+      console.error('Error creating profile:', error);
+      throw error;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,12 +72,27 @@ const Register = () => {
     }
 
     try {
-      await register(email, password, username);
-      toast({
-        title: "Успешная регистрация",
-        description: "Добро пожаловать!",
+      const { data: { user } } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            role: "user",
+          },
+        },
       });
-      navigate("/");
+
+      if (user) {
+        // Create profile immediately after registration
+        await createProfile(user.id, username);
+        
+        toast({
+          title: "Успешная регистрация",
+          description: "Добро пожаловать!",
+        });
+        navigate("/");
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
       let errorMessage = "Не удалось зарегистрироваться";
