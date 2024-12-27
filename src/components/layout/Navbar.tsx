@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "@/hooks/use-toast";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const [canAccessAdmin, setCanAccessAdmin] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -15,25 +17,43 @@ const Navbar = () => {
         return;
       }
 
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role, is_superadmin')
-        .eq('id', user.id)
-        .single();
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role, is_superadmin')
+          .eq('id', user.id)
+          .maybeSingle();
 
-      if (error) {
+        if (error) {
+          console.error("Error checking admin access:", error);
+          setCanAccessAdmin(false);
+          return;
+        }
+
+        setCanAccessAdmin(
+          profile?.is_superadmin || ["creator", "admin"].includes(profile?.role || "")
+        );
+      } catch (error) {
         console.error("Error checking admin access:", error);
         setCanAccessAdmin(false);
-        return;
       }
-
-      setCanAccessAdmin(
-        profile?.is_superadmin || ["creator", "admin"].includes(profile?.role || "")
-      );
     };
 
     checkAdminAccess();
   }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Ошибка",
+        description: "Произошла ошибка при выходе",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <nav className="bg-gray-800 border-b border-gray-700">
@@ -78,7 +98,7 @@ const Navbar = () => {
                     Профиль
                   </Button>
                 </Link>
-                <Button variant="ghost" onClick={logout}>
+                <Button variant="ghost" onClick={handleLogout}>
                   Выйти
                 </Button>
               </>

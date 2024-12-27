@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { User } from "@/lib/types";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "./use-toast";
 
 interface AuthContextType {
   user: User | null;
@@ -17,9 +18,9 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
@@ -33,7 +34,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -100,13 +100,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      // Always clear local state regardless of logout success
+      // Clear local state first
       setUser(null);
       setSession(null);
+      
+      // Then attempt to sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Logout error:", error);
+        toast({
+          title: "Ошибка",
+          description: "Произошла ошибка при выходе",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
     }
   };
 
