@@ -14,26 +14,32 @@ const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Email validation function with more permissive regex
+  // More strict email validation function
   const isValidEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(email);
   };
 
   const createProfile = async (userId: string, username: string) => {
-    const { error } = await supabase
-      .from('profiles')
-      .insert([
-        {
-          id: userId,
-          username,
-          role: 'user',
-          is_superadmin: false,
-        }
-      ]);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: userId,
+            username,
+            role: 'user',
+            is_superadmin: false,
+          }
+        ])
+        .select();
 
-    if (error) {
-      console.error('Error creating profile:', error);
+      if (error) {
+        console.error('Error creating profile:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Profile creation error:', error);
       throw error;
     }
   };
@@ -72,7 +78,8 @@ const Register = () => {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.signUp({
+      // First, sign up the user
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -83,8 +90,10 @@ const Register = () => {
         },
       });
 
+      if (signUpError) throw signUpError;
+
       if (user) {
-        // Create profile immediately after registration
+        // Create profile immediately after successful signup
         await createProfile(user.id, username);
         
         toast({
