@@ -13,8 +13,24 @@ const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Email validation function
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      toast({
+        title: "Ошибка",
+        description: "Пожалуйста, введите корректный email адрес",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Validate password length
     if (password.length < 6) {
@@ -47,10 +63,10 @@ const Register = () => {
       console.error('Registration error:', error);
       let errorMessage = "Не удалось зарегистрироваться";
       
-      if (error.message?.includes("weak_password")) {
-        errorMessage = "Пароль слишком простой. Используйте минимум 6 символов";
-      } else if (error.message?.includes("email")) {
+      if (error.message?.includes("email_address_invalid")) {
         errorMessage = "Некорректный email адрес";
+      } else if (error.message?.includes("weak_password")) {
+        errorMessage = "Пароль слишком простой. Используйте минимум 6 символов";
       } else if (error.message?.includes("already registered")) {
         errorMessage = "Этот email уже зарегистрирован";
       }
