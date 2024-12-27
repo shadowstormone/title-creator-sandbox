@@ -3,141 +3,116 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Edit } from "lucide-react";
+import { Edit, BarChart } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import AnimeForm from "@/components/admin/AnimeForm";
+import UserManagement from "@/components/admin/UserManagement";
 import { supabase } from "@/lib/supabaseClient";
-
-// Временные данные (в будущем будут загружаться из базы данных)
-const mockAnimeList = [
-  { 
-    id: 1, 
-    title: "Наруто", 
-    titleEn: "naruto",
-    description: "Naruto description",
-    genres: ["action", "adventure"],
-    totalEpisodes: 220,
-    uploadedEpisodes: 210,
-    year: 2002,
-    season: "Fall",
-    studio: "Studio Pierrot",
-    voiceActing: "Japanese",
-    timing: "24 min per ep"
-  },
-  { 
-    id: 2, 
-    title: "Блич", 
-    titleEn: "bleach",
-    description: "Bleach description",
-    genres: ["action", "supernatural"],
-    totalEpisodes: 366,
-    uploadedEpisodes: 366,
-    year: 2004,
-    season: "Fall",
-    studio: "Studio Pierrot",
-    voiceActing: "Japanese",
-    timing: "24 min per ep"
-  },
-];
+import { useAuth } from "@/hooks/useAuth";
 
 const Admin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [animeList, setAnimeList] = useState([]);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    const initializeData = async () => {
-      try {
-        // Check if we have any anime in the database
-        const { data: existingAnime, error: fetchError } = await supabase
-          .from('animes')
-          .select('*');
+    if (!user || !["creator", "admin"].includes(user.role)) {
+      navigate("/");
+      return;
+    }
 
-        if (fetchError) throw fetchError;
+    fetchAnimeList();
+  }, [user, navigate]);
 
-        if (!existingAnime || existingAnime.length === 0) {
-          // If no anime exists, insert the mock data
-          console.log('No anime found, inserting mock data...');
-          const { error: insertError } = await supabase
-            .from('animes')
-            .insert(mockAnimeList.map(({ id, ...rest }) => rest)); // Remove id as it's auto-generated
-
-          if (insertError) throw insertError;
-          
-          toast({
-            title: "База данных инициализирована",
-            description: "Тестовые данные успешно добавлены",
-          });
-        }
-
-        // Fetch the current data
-        const { data: currentAnime, error: refetchError } = await supabase
-          .from('animes')
-          .select('*');
-
-        if (refetchError) throw refetchError;
-        
-        setAnimeList(currentAnime);
-      } catch (error) {
-        console.error('Error initializing data:', error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить данные",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeData();
-  }, [toast]);
-
-  const handleAnimeSubmit = async (data: any) => {
+  const fetchAnimeList = async () => {
     try {
-      const { error } = await supabase
-        .from('animes')
-        .insert([data]);
-
-      if (error) throw error;
-      
-      toast({
-        title: "Аниме добавлено",
-        description: "Новое аниме успешно добавлено в базу данных",
-      });
-      
-      // Refresh the anime list
-      const { data: updatedAnime } = await supabase
+      const { data, error } = await supabase
         .from('animes')
         .select('*');
-      
-      setAnimeList(updatedAnime || []);
+
+      if (error) throw error;
+      setAnimeList(data || []);
     } catch (error) {
-      console.error('Error adding anime:', error);
+      console.error('Error fetching anime:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось добавить аниме",
+        description: "Не удалось загрузить список аниме",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-gray-900 text-white p-6">Loading...</div>;
+    return <div className="min-h-screen bg-gray-900 text-white p-6">Загрузка...</div>;
   }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <h1 className="text-4xl font-bold text-purple-400">Админ панель</h1>
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="flex justify-between items-center">
+          <h1 className="text-4xl font-bold text-purple-400">Админ панель</h1>
+          <Link to="/admin/statistics">
+            <Button variant="outline" className="flex items-center gap-2">
+              <BarChart className="h-4 w-4" />
+              Статистика
+            </Button>
+          </Link>
+        </div>
+
+        {user?.role === "creator" && (
+          <UserManagement />
+        )}
         
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="text-purple-400">Добавить новое аниме</CardTitle>
           </CardHeader>
           <CardContent>
-            <AnimeForm onSubmit={handleAnimeSubmit} />
+            <AnimeForm onSubmit={async (data) => {
+              try {
+                const { data: newAnime, error } = await supabase
+                  .from('animes')
+                  .insert([{
+                    title: data.title,
+                    title_en: data.titleEn,
+                    description: data.description,
+                    genres: data.genres,
+                    total_episodes: data.totalEpisodes,
+                    uploaded_episodes: data.uploadedEpisodes,
+                    year: data.year,
+                    season: data.season,
+                    studio: data.studio,
+                    voice_acting: data.voiceActing,
+                    timing: data.timing,
+                    image_url: data.imageUrl,
+                  }])
+                  .select()
+                  .single();
+
+                if (error) throw error;
+
+                toast({
+                  title: "Успешно",
+                  description: "Аниме добавлено",
+                });
+
+                await fetchAnimeList();
+                if (newAnime) {
+                  navigate(`/anime/${newAnime.id}/${newAnime.title_en}`);
+                }
+              } catch (error) {
+                console.error('Error adding anime:', error);
+                toast({
+                  title: "Ошибка",
+                  description: "Не удалось добавить аниме",
+                  variant: "destructive",
+                });
+              }
+            }} />
           </CardContent>
         </Card>
 
@@ -161,10 +136,10 @@ const Admin = () => {
                     <TableCell className="text-white">{anime.id}</TableCell>
                     <TableCell className="text-white">{anime.title}</TableCell>
                     <TableCell className="text-white">
-                      {anime.uploadedEpisodes} из {anime.totalEpisodes}
+                      {anime.uploaded_episodes} из {anime.total_episodes}
                     </TableCell>
                     <TableCell>
-                      <Link to={`/admin/anime/${anime.id}/${anime.titleEn}`}>
+                      <Link to={`/admin/anime/${anime.id}/${anime.title_en}`}>
                         <Button variant="outline" size="sm" className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">
                           <Edit className="h-4 w-4" />
                         </Button>
