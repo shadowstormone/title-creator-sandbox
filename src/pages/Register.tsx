@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
 const Register = () => {
@@ -13,39 +12,29 @@ const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Updated email validation to handle more TLDs
   const isValidEmail = (email: string) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(email);
   };
 
   const createProfile = async (userId: string, username: string) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: userId,
-            username,
-            role: 'user',
-            is_superadmin: false,
-          }
-        ]);
+    const { error } = await supabase
+      .from('profiles')
+      .insert([
+        {
+          id: userId,
+          username,
+          role: 'user',
+          is_superadmin: false,
+        }
+      ]);
 
-      if (error) {
-        console.error('Error creating profile:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('Profile creation error:', error);
-      throw error;
-    }
+    if (error) throw error;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate email format
     if (!isValidEmail(email)) {
       toast({
         title: "Ошибка",
@@ -55,7 +44,6 @@ const Register = () => {
       return;
     }
 
-    // Validate password length
     if (password.length < 6) {
       toast({
         title: "Ошибка",
@@ -65,7 +53,6 @@ const Register = () => {
       return;
     }
 
-    // Validate username
     if (username.length < 3) {
       toast({
         title: "Ошибка",
@@ -76,7 +63,6 @@ const Register = () => {
     }
 
     try {
-      // First, sign up the user
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -91,7 +77,6 @@ const Register = () => {
       if (signUpError) throw signUpError;
 
       if (user) {
-        // Create profile immediately after successful signup
         await createProfile(user.id, username);
         
         toast({
