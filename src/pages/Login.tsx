@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
 const Login = () => {
@@ -56,7 +56,9 @@ const Login = () => {
       
       let errorMessage = "Не удалось войти в систему";
       
-      if (error.message?.includes("invalid_credentials")) {
+      if (error.message?.includes("email_not_confirmed")) {
+        errorMessage = "Пожалуйста, подтвердите ваш email адрес. Проверьте вашу почту.";
+      } else if (error.message?.includes("invalid_credentials")) {
         errorMessage = "Неверный email или пароль";
       } else if (error.message?.includes("email")) {
         errorMessage = "Некорректный email адрес";
