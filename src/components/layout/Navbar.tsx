@@ -1,11 +1,39 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
+  const [canAccessAdmin, setCanAccessAdmin] = useState(false);
 
-  const canAccessAdmin = user && ["creator", "admin"].includes(user.role);
+  useEffect(() => {
+    const checkAdminAccess = async () => {
+      if (!user) {
+        setCanAccessAdmin(false);
+        return;
+      }
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, is_superadmin')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error("Error checking admin access:", error);
+        setCanAccessAdmin(false);
+        return;
+      }
+
+      setCanAccessAdmin(
+        profile?.is_superadmin || ["creator", "admin"].includes(profile?.role || "")
+      );
+    };
+
+    checkAdminAccess();
+  }, [user]);
 
   return (
     <nav className="bg-gray-800 border-b border-gray-700">

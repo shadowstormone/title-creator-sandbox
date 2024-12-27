@@ -19,13 +19,35 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    if (!user || !["creator", "admin"].includes(user.role)) {
-      navigate("/");
-      return;
-    }
+    const checkAccess = async () => {
+      if (!user) {
+        navigate("/");
+        return;
+      }
 
-    fetchAnimeList();
-  }, [user, navigate]);
+      // Check if user has admin access in the database
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, is_superadmin')
+        .eq('id', user.id)
+        .single();
+
+      if (error || (!profile?.is_superadmin && !["creator", "admin"].includes(profile?.role || ""))) {
+        console.error("Access denied:", error || "Insufficient permissions");
+        navigate("/");
+        toast({
+          title: "Доступ запрещен",
+          description: "У вас нет прав для доступа к админ панели",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      fetchAnimeList();
+    };
+
+    checkAccess();
+  }, [user, navigate, toast]);
 
   const fetchAnimeList = async () => {
     try {
