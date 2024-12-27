@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -12,35 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-
-// Временные данные (в будущем будут загружаться из базы данных)
-const animeData = [
-  { 
-    id: 1, 
-    title: "Наруто", 
-    titleEn: "naruto",
-    genres: ["Сёнен", "Боевик", "Приключения"],
-    year: 2002,
-    season: "Осень",
-    studio: "Studio Pierrot",
-    image: "path/to/naruto.jpg" 
-  },
-  { 
-    id: 2, 
-    title: "Блич", 
-    titleEn: "bleach",
-    genres: ["Сёнен", "Боевик", "Сверхъестественное"],
-    year: 2004,
-    season: "Осень",
-    studio: "Studio Pierrot",
-    image: "path/to/bleach.jpg"
-  },
-];
-
-const allGenres = Array.from(new Set(animeData.flatMap(anime => anime.genres)));
-const allYears = Array.from(new Set(animeData.map(anime => anime.year))).sort((a, b) => b - a);
-const allSeasons = ["Зима", "Весна", "Лето", "Осень"];
-const allStudios = Array.from(new Set(animeData.map(anime => anime.studio)));
+import { supabase } from "@/lib/supabaseClient";
+import { Anime } from "@/lib/types";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,10 +22,42 @@ const Index = () => {
   const [selectedYear, setSelectedYear] = useState("all");
   const [selectedSeason, setSelectedSeason] = useState("all");
   const [selectedStudio, setSelectedStudio] = useState("all");
+  const [animeList, setAnimeList] = useState<Anime[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const filteredAnime = animeData.filter((anime) => {
+  useEffect(() => {
+    fetchAnimeList();
+  }, []);
+
+  const fetchAnimeList = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('animes')
+        .select('*');
+
+      if (error) throw error;
+      setAnimeList(data || []);
+    } catch (error) {
+      console.error('Error fetching anime:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить список аниме",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const allGenres = Array.from(new Set(animeList.flatMap(anime => anime.genres)));
+  const allYears = Array.from(new Set(animeList.map(anime => anime.year))).sort((a, b) => b - a);
+  const allSeasons = ["Зима", "Весна", "Лето", "Осень"];
+  const allStudios = Array.from(new Set(animeList.map(anime => anime.studio)));
+
+  const filteredAnime = animeList.filter((anime) => {
     const matchesSearch = anime.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         anime.titleEn.toLowerCase().includes(searchQuery.toLowerCase());
+                         anime.title_en.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesGenre = selectedGenre === "all" || anime.genres.includes(selectedGenre);
     const matchesYear = selectedYear === "all" || anime.year.toString() === selectedYear;
     const matchesSeason = selectedSeason === "all" || anime.season === selectedSeason;
@@ -60,16 +66,15 @@ const Index = () => {
     return matchesSearch && matchesGenre && matchesYear && matchesSeason && matchesStudio;
   });
 
+  if (loading) {
+    return <div className="min-h-screen bg-gray-900 text-white p-6">Загрузка...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-purple-400">Anime Portal</h1>
-          <Link to="/admin">
-            <Button variant="outline" className="bg-purple-600 hover:bg-purple-700 border-none text-white">
-              Админ панель
-            </Button>
-          </Link>
         </div>
         
         <div className="space-y-6 mb-8">
@@ -137,12 +142,12 @@ const Index = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredAnime.map((anime) => (
-            <Link to={`/anime/${anime.id}/${anime.titleEn}`} key={anime.id}>
+            <Link to={`/anime/${anime.id}/${anime.title_en}`} key={anime.id}>
               <Card className="bg-gray-800 border-gray-700 hover:border-purple-500 transition-all duration-300">
                 <CardContent className="p-4">
                   <div className="aspect-[3/4] relative mb-3">
                     <img
-                      src={anime.image}
+                      src={anime.image_url || '/placeholder.svg'}
                       alt={anime.title}
                       className="w-full h-full object-cover rounded-lg"
                     />

@@ -5,6 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 const Navbar = () => {
   const { user, logout } = useAuth();
 
+  const canAccessAdmin = user && ["creator", "admin"].includes(user.role);
+
   return (
     <nav className="bg-gray-800 border-b border-gray-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,7 +38,7 @@ const Navbar = () => {
           <div className="flex items-center">
             {user ? (
               <>
-                {(user.role === "admin" || user.role === "creator") && (
+                {canAccessAdmin && (
                   <Link to="/admin">
                     <Button variant="outline" className="mr-4">
                       Админ панель

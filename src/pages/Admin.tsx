@@ -4,17 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Edit, BarChart } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import AnimeForm from "@/components/admin/AnimeForm";
 import UserManagement from "@/components/admin/UserManagement";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { Anime } from "@/lib/types";
 
 const Admin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [animeList, setAnimeList] = useState([]);
+  const [animeList, setAnimeList] = useState<Anime[]>([]);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
@@ -46,6 +47,48 @@ const Admin = () => {
     }
   };
 
+  const handleAnimeSubmit = async (data: Partial<Anime>) => {
+    try {
+      const { data: newAnime, error } = await supabase
+        .from('animes')
+        .insert([{
+          title: data.title,
+          title_en: data.title_en,
+          description: data.description,
+          genres: data.genres,
+          total_episodes: data.total_episodes,
+          uploaded_episodes: data.uploaded_episodes,
+          year: data.year,
+          season: data.season,
+          studio: data.studio,
+          voice_acting: data.voice_acting,
+          timing: data.timing,
+          image_url: data.image_url,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Аниме добавлено",
+      });
+
+      await fetchAnimeList();
+      if (newAnime) {
+        navigate(`/anime/${newAnime.id}/${newAnime.title_en}`);
+      }
+    } catch (error) {
+      console.error('Error adding anime:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось добавить аниме",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen bg-gray-900 text-white p-6">Загрузка...</div>;
   }
@@ -63,56 +106,14 @@ const Admin = () => {
           </Link>
         </div>
 
-        {user?.role === "creator" && (
-          <UserManagement />
-        )}
+        <UserManagement />
         
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="text-purple-400">Добавить новое аниме</CardTitle>
           </CardHeader>
           <CardContent>
-            <AnimeForm onSubmit={async (data) => {
-              try {
-                const { data: newAnime, error } = await supabase
-                  .from('animes')
-                  .insert([{
-                    title: data.title,
-                    title_en: data.titleEn,
-                    description: data.description,
-                    genres: data.genres,
-                    total_episodes: data.totalEpisodes,
-                    uploaded_episodes: data.uploadedEpisodes,
-                    year: data.year,
-                    season: data.season,
-                    studio: data.studio,
-                    voice_acting: data.voiceActing,
-                    timing: data.timing,
-                    image_url: data.imageUrl,
-                  }])
-                  .select()
-                  .single();
-
-                if (error) throw error;
-
-                toast({
-                  title: "Успешно",
-                  description: "Аниме добавлено",
-                });
-
-                await fetchAnimeList();
-                if (newAnime) {
-                  navigate(`/anime/${newAnime.id}/${newAnime.title_en}`);
-                }
-              } catch (error) {
-                console.error('Error adding anime:', error);
-                toast({
-                  title: "Ошибка",
-                  description: "Не удалось добавить аниме",
-                  variant: "destructive",
-                });
-              }
-            }} />
+            <AnimeForm onSubmit={handleAnimeSubmit} />
           </CardContent>
         </Card>
 
