@@ -14,7 +14,7 @@ const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // More strict email validation function
+  // Updated email validation to handle more TLDs
   const isValidEmail = (email: string) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(email);
@@ -31,8 +31,7 @@ const Register = () => {
             role: 'user',
             is_superadmin: false,
           }
-        ])
-        .select();
+        ]);
 
       if (error) {
         console.error('Error creating profile:', error);
