@@ -13,8 +13,9 @@ const Register = () => {
   const { toast } = useToast();
 
   const isValidEmail = (email: string) => {
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return emailRegex.test(email);
+    // More strict email validation regex
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email) && email.length <= 254; // RFC 5321
   };
 
   const createProfile = async (userId: string, username: string) => {
@@ -64,7 +65,7 @@ const Register = () => {
 
     try {
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: email.toLowerCase().trim(), // Normalize email
         password,
         options: {
           data: {
