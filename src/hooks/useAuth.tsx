@@ -78,27 +78,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
       });
-      
+
       if (error) {
-        // Handle specific error cases
-        if (error instanceof AuthError) {
-          if (error.message.includes("Invalid login credentials")) {
-            throw new Error("Неверный email или пароль");
-          } else if (error.message.includes("Email not confirmed")) {
-            throw new Error("Email не подтвержден");
-          }
+        if (error.message.includes("Invalid login credentials")) {
+          throw new Error("Неверный email или пароль");
+        } else if (error.message.includes("Email not confirmed")) {
+          throw new Error("Email не подтвержден. Проверьте вашу почту");
+        } else if (error.message.includes("Invalid email")) {
+          throw new Error("Некорректный email адрес");
+        } else {
+          throw new Error("Ошибка входа. Попробуйте позже");
         }
-        throw error;
       }
-      
-      if (data.user) {
-        await loadUserProfile(data.user.id);
-      }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
       throw error;
     }
@@ -138,16 +134,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      // Clear local state first
       setUser(null);
       setSession(null);
-      
-      // Then sign out from Supabase
       await supabase.auth.signOut();
-      
-      // Clear any persisted session
       localStorage.removeItem('supabase.auth.token');
-      
     } catch (error) {
       console.error("Logout error:", error);
       throw error;
