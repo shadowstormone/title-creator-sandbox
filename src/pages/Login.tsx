@@ -25,10 +25,9 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isLoading) return; // Prevent multiple submissions
+    if (isLoading) return;
     setShowVerificationAlert(false);
     
-    // Validate email format
     if (!validateEmail(email)) {
       toast({
         title: "Ошибка",
@@ -38,7 +37,6 @@ const Login = () => {
       return;
     }
 
-    // Validate password length
     if (password.length < 6) {
       toast({
         title: "Ошибка",
@@ -60,14 +58,11 @@ const Login = () => {
     } catch (error: any) {
       console.error("Login error:", error);
       
-      let errorMessage = "Не удалось войти в систему";
+      let errorMessage = error.message || "Не удалось войти в систему";
       
-      if (error.message?.includes("email_not_confirmed") || 
-          (error.error?.message && error.error.message.includes("Email not confirmed"))) {
+      if (errorMessage.includes("Email не подтвержден")) {
         setShowVerificationAlert(true);
         errorMessage = "Пожалуйста, подтвердите ваш email адрес. Проверьте вашу почту.";
-      } else if (error.message?.includes("Invalid login credentials")) {
-        errorMessage = "Неверный email или пароль";
       }
       
       toast({

@@ -1,8 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { User } from "@/lib/types";
-import { Session } from "@supabase/supabase-js";
+import { Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
-import { useToast } from "./use-toast";
 
 interface AuthContextType {
   user: User | null;
@@ -18,30 +17,14 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
-    // Initialize auth state
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profile) {
-            setUser({
-              id: session.user.id,
-              username: profile.username || "User",
-              email: session.user.email || "",
-              role: profile.role || "user",
-              createdAt: new Date(session.user.created_at),
-            });
-          }
+          await loadUserProfile(session.user.id);
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
@@ -52,27 +35,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initAuth();
 
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session);
       setSession(session);
       
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profile) {
-          setUser({
-            id: session.user.id,
-            username: profile.username || "User",
-            email: session.user.email || "",
-            role: profile.role || "user",
-            createdAt: new Date(session.user.created_at),
-          });
-        }
+        await loadUserProfile(session.user.id);
       } else {
         setUser(null);
       }
@@ -83,6 +51,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
+  const loadUserProfile = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      if (profile) {
+        setUser({
+          id: userId,
+          username: profile.username || "User",
+          email: profile.email || "",
+          role: profile.role || "user",
+          createdAt: new Date(profile.created_at),
+        });
+      }
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+      setUser(null);
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -90,26 +83,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         password,
       });
       
-      if (error) throw error;
+      if (error) {
+        // Handle specific error cases
+        if (error instanceof AuthError) {
+          if (error.message.includes("Invalid login credentials")) {
+            throw new Error("Неверный email или пароль");
+          } else if (error.message.includes("Email not confirmed")) {
+            throw new Error("Email не подтвержден");
+          }
+        }
+        throw error;
+      }
       
       if (data.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profile) {
-          setUser({
-            id: data.user.id,
-            username: profile.username || "User",
-            email: data.user.email || "",
-            role: profile.role || "user",
-            createdAt: new Date(data.user.created_at),
-          });
-        }
+        await loadUserProfile(data.user.id);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Login error:", error);
       throw error;
     }
