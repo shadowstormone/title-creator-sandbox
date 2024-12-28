@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,9 +28,13 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase.auth.admin.listUsers();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      setUsers(data.users || []);
+      setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -46,9 +49,10 @@ const UserManagement = () => {
 
   const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
-      const { error } = await supabase.auth.admin.updateUserById(userId, {
-        user_metadata: { role: newRole }
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
       
       if (error) throw error;
       
@@ -91,11 +95,11 @@ const UserManagement = () => {
             {users.map((user) => (
               <TableRow key={user.id} className="border-gray-700">
                 <TableCell className="text-white">{user.email}</TableCell>
-                <TableCell className="text-white">{user.user_metadata?.username || 'Нет имени'}</TableCell>
-                <TableCell className="text-white">{user.user_metadata?.role || 'user'}</TableCell>
+                <TableCell className="text-white">{user.username || 'Нет имени'}</TableCell>
+                <TableCell className="text-white">{user.role || 'user'}</TableCell>
                 <TableCell>
                   <Select
-                    value={user.user_metadata?.role || 'user'}
+                    value={user.role || 'user'}
                     onValueChange={(value: UserRole) => updateUserRole(user.id, value)}
                   >
                     <SelectTrigger className="w-32">
