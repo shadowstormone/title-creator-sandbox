@@ -1,4 +1,4 @@
-const REGISTRATION_COOLDOWN = 180000; // 3 minutes in milliseconds
+const REGISTRATION_COOLDOWN = 300000; // 5 minutes in milliseconds
 const STORAGE_KEY = 'lastRegistrationAttempt';
 
 export const isValidEmail = (email: string) => {

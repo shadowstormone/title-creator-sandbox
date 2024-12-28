@@ -86,8 +86,8 @@ const RegistrationForm = ({ onSuccess }: RegistrationFormProps) => {
           errorMessage = "Email адрес недействителен или уже используется";
         } else if (error.message.includes("password")) {
           errorMessage = "Проблема с паролем. Убедитесь, что он содержит минимум 6 символов";
-        } else if (error.message.includes("rate limit")) {
-          errorMessage = "Слишком много попыток регистрации. Пожалуйста, подождите 3 минуты и попробуйте снова.";
+        } else if (error.message.includes("rate limit") || error.status === 429) {
+          errorMessage = "Превышен лимит попыток регистрации. Пожалуйста, подождите 5 минут и попробуйте снова.";
         }
         
         throw new Error(errorMessage);
