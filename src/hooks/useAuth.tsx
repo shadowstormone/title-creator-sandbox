@@ -78,12 +78,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
       });
 
       if (error) {
+        console.error("Login error details:", error);
         if (error.message.includes("Invalid login credentials")) {
           throw new Error("Неверный email или пароль");
         } else if (error.message.includes("Email not confirmed")) {
@@ -93,6 +94,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           throw new Error("Ошибка входа. Попробуйте позже");
         }
+      }
+
+      if (data.user) {
+        await loadUserProfile(data.user.id);
       }
     } catch (error: any) {
       console.error("Login error:", error);
@@ -117,7 +122,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
       
       if (data.user) {
-        // The profile will be created automatically by the database trigger
         setUser({
           id: data.user.id,
           username,
