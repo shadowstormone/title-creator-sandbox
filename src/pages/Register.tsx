@@ -15,8 +15,8 @@ const Register = () => {
   const { toast } = useToast();
 
   const isValidEmail = (email: string) => {
-    // Basic email validation that accepts more TLDs
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    // RFC 5322 compliant email regex
+    const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     return emailRegex.test(email.toLowerCase().trim());
   };
 
@@ -82,7 +82,12 @@ const Register = () => {
         },
       });
 
-      if (signUpError) throw signUpError;
+      if (signUpError) {
+        if (signUpError.message.includes("email_address_invalid")) {
+          throw new Error("Некорректный email адрес. Пожалуйста, проверьте правильность написания.");
+        }
+        throw signUpError;
+      }
 
       if (user) {
         await createProfile(user.id, username);
