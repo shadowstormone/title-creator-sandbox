@@ -15,24 +15,10 @@ const Register = () => {
   const { toast } = useToast();
 
   const isValidEmail = (email: string) => {
-    // Simpler email validation that better handles international domains
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email.toLowerCase().trim());
-  };
-
-  const createProfile = async (userId: string, username: string) => {
-    const { error } = await supabase
-      .from('profiles')
-      .insert([
-        {
-          id: userId,
-          username,
-          role: 'user',
-          is_superadmin: false,
-        }
-      ]);
-
-    if (error) throw error;
+    // Basic email validation that accepts more email formats
+    return email.toLowerCase().trim().match(
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    ) !== null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,7 +64,6 @@ const Register = () => {
             username,
             role: "user",
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -95,8 +80,6 @@ const Register = () => {
       }
 
       if (user) {
-        await createProfile(user.id, username);
-        
         toast({
           title: "Успешная регистрация",
           description: "Пожалуйста, подтвердите ваш email адрес",

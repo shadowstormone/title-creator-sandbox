@@ -20,9 +20,10 @@ create policy "Users can insert their own profile"
   on profiles for insert
   with check ( auth.uid() = id );
 
-create policy "Users can update their own profile"
-  on profiles for update
-  using ( auth.uid() = id );
+create policy "Users can update own profile"
+  on profiles for update using (
+    auth.uid() = id
+  );
 
 -- Create a trigger to set updated_at on update
 create or replace function public.handle_updated_at()
@@ -43,7 +44,11 @@ create or replace function public.handle_new_user()
 returns trigger as $$
 begin
   insert into public.profiles (id, username, role)
-  values (new.id, new.raw_user_meta_data->>'username', coalesce(new.raw_user_meta_data->>'role', 'user'));
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'username', 'User'),
+    coalesce(new.raw_user_meta_data->>'role', 'user')
+  );
   return new;
 end;
 $$ language plpgsql security definer;
