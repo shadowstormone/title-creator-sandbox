@@ -15,8 +15,8 @@ const Register = () => {
   const { toast } = useToast();
 
   const isValidEmail = (email: string) => {
-    // RFC 5322 compliant email regex
-    const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email.toLowerCase().trim());
   };
 
@@ -62,17 +62,17 @@ const Register = () => {
           data: {
             username,
             role: "user",
-          },
-        },
+          }
+        }
       });
 
       if (error) {
         let errorMessage = "Не удалось зарегистрироваться";
         
-        if (error.message.includes("email_address_invalid")) {
-          errorMessage = "Некорректный формат email адреса";
-        } else if (error.message.includes("already registered")) {
-          errorMessage = "Этот email уже зарегистрирован";
+        if (error.message.includes("email")) {
+          errorMessage = "Некорректный формат email адреса или email уже используется";
+        } else if (error.message.includes("password")) {
+          errorMessage = "Проблема с паролем. Убедитесь, что он содержит минимум 6 символов";
         }
         
         throw new Error(errorMessage);
