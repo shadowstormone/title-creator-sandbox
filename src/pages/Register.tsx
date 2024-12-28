@@ -6,6 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 
+// Store the last registration attempt timestamp in localStorage
+const REGISTRATION_COOLDOWN = 60000; // 1 minute in milliseconds
+const STORAGE_KEY = 'lastRegistrationAttempt';
+
 const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,9 +23,27 @@ const Register = () => {
     return emailRegex.test(email);
   };
 
+  const canAttemptRegistration = () => {
+    const lastAttempt = localStorage.getItem(STORAGE_KEY);
+    if (!lastAttempt) return true;
+
+    const timeSinceLastAttempt = Date.now() - parseInt(lastAttempt);
+    return timeSinceLastAttempt >= REGISTRATION_COOLDOWN;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!canAttemptRegistration()) {
+      const remainingTime = Math.ceil((REGISTRATION_COOLDOWN - (Date.now() - parseInt(localStorage.getItem(STORAGE_KEY) || '0'))) / 1000);
+      toast({
+        title: "Пожалуйста, подождите",
+        description: `Попробуйте снова через ${remainingTime} секунд`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const trimmedEmail = email.toLowerCase().trim();
     const trimmedUsername = username.trim();
     
@@ -53,6 +75,7 @@ const Register = () => {
     }
 
     setIsLoading(true);
+    localStorage.setItem(STORAGE_KEY, Date.now().toString());
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -73,6 +96,8 @@ const Register = () => {
           errorMessage = "Email адрес недействителен или уже используется. Пожалуйста, используйте другой email.";
         } else if (error.message.includes("password")) {
           errorMessage = "Проблема с паролем. Убедитесь, что он содержит минимум 6 символов";
+        } else if (error.message.includes("rate limit")) {
+          errorMessage = "Слишком много попыток регистрации. Пожалуйста, подождите минуту и попробуйте снова.";
         }
         
         throw new Error(errorMessage);
