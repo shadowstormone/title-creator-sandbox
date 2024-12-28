@@ -15,8 +15,8 @@ const Register = () => {
   const { toast } = useToast();
 
   const isValidEmail = (email: string) => {
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // More strict email validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(email.toLowerCase().trim());
   };
 
@@ -60,7 +60,7 @@ const Register = () => {
         password,
         options: {
           data: {
-            username,
+            username: username.trim(),
             role: "user",
           }
         }
@@ -70,7 +70,7 @@ const Register = () => {
         let errorMessage = "Не удалось зарегистрироваться";
         
         if (error.message.includes("email")) {
-          errorMessage = "Некорректный формат email адреса или email уже используется";
+          errorMessage = "Данный email адрес не может быть использован для регистрации";
         } else if (error.message.includes("password")) {
           errorMessage = "Проблема с паролем. Убедитесь, что он содержит минимум 6 символов";
         }
