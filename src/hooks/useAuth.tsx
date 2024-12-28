@@ -27,13 +27,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         if (session?.user) {
-          setUser({
-            id: session.user.id,
-            username: session.user.user_metadata.username || "User",
-            email: session.user.email || "",
-            role: session.user.user_metadata.role || "user",
-            createdAt: new Date(session.user.created_at),
-          });
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile) {
+            setUser({
+              id: session.user.id,
+              username: profile.username || "User",
+              email: session.user.email || "",
+              role: profile.role || "user",
+              createdAt: new Date(session.user.created_at),
+            });
+          }
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
@@ -50,13 +58,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       
       if (session?.user) {
-        setUser({
-          id: session.user.id,
-          username: session.user.user_metadata.username || "User",
-          email: session.user.email || "",
-          role: session.user.user_metadata.role || "user",
-          createdAt: new Date(session.user.created_at),
-        });
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile) {
+          setUser({
+            id: session.user.id,
+            username: profile.username || "User",
+            email: session.user.email || "",
+            role: profile.role || "user",
+            createdAt: new Date(session.user.created_at),
+          });
+        }
       } else {
         setUser(null);
       }
@@ -77,13 +93,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
       
       if (data.user) {
-        setUser({
-          id: data.user.id,
-          username: data.user.user_metadata.username || "User",
-          email: data.user.email || "",
-          role: data.user.user_metadata.role || "user",
-          createdAt: new Date(data.user.created_at),
-        });
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profile) {
+          setUser({
+            id: data.user.id,
+            username: profile.username || "User",
+            email: data.user.email || "",
+            role: profile.role || "user",
+            createdAt: new Date(data.user.created_at),
+          });
+        }
       }
     } catch (error: any) {
       console.error("Login error:", error);
@@ -108,6 +132,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
       
       if (data.user) {
+        // The profile will be created automatically by the database trigger
         setUser({
           id: data.user.id,
           username,
@@ -142,8 +167,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateProfile = async (data: Partial<User>) => {
     if (!user) return;
-    const updatedUser = { ...user, ...data };
-    setUser(updatedUser);
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          username: data.username,
+          role: data.role,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      const updatedUser = { ...user, ...data };
+      setUser(updatedUser);
+    } catch (error) {
+      console.error("Profile update error:", error);
+      throw error;
+    }
   };
 
   return (
