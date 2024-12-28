@@ -15,10 +15,9 @@ const Register = () => {
   const { toast } = useToast();
 
   const isValidEmail = (email: string) => {
-    // Basic email validation that accepts more email formats
-    return email.toLowerCase().trim().match(
-      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-    ) !== null;
+    // RFC 5322 compliant email regex
+    const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return emailRegex.test(email.toLowerCase().trim());
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,7 +55,7 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: trimmedEmail,
         password,
         options: {
@@ -67,19 +66,19 @@ const Register = () => {
         },
       });
 
-      if (signUpError) {
+      if (error) {
         let errorMessage = "Не удалось зарегистрироваться";
         
-        if (signUpError.message.includes("email")) {
-          errorMessage = "Некорректный email адрес или он уже используется";
-        } else if (signUpError.message.includes("password")) {
-          errorMessage = "Некорректный пароль";
+        if (error.message.includes("email_address_invalid")) {
+          errorMessage = "Некорректный формат email адреса";
+        } else if (error.message.includes("already registered")) {
+          errorMessage = "Этот email уже зарегистрирован";
         }
         
         throw new Error(errorMessage);
       }
 
-      if (user) {
+      if (data.user) {
         toast({
           title: "Успешная регистрация",
           description: "Пожалуйста, подтвердите ваш email адрес",
