@@ -15,15 +15,15 @@ const Register = () => {
   const { toast } = useToast();
 
   const isValidEmail = (email: string) => {
-    // More strict email validation
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return emailRegex.test(email.toLowerCase().trim());
+    return emailRegex.test(email);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const trimmedEmail = email.toLowerCase().trim();
+    const trimmedUsername = username.trim();
     
     if (!isValidEmail(trimmedEmail)) {
       toast({
@@ -43,7 +43,7 @@ const Register = () => {
       return;
     }
 
-    if (username.length < 3) {
+    if (trimmedUsername.length < 3) {
       toast({
         title: "Ошибка",
         description: "Имя пользователя должно содержать минимум 3 символа",
@@ -60,7 +60,7 @@ const Register = () => {
         password,
         options: {
           data: {
-            username: username.trim(),
+            username: trimmedUsername,
             role: "user",
           }
         }
@@ -70,7 +70,7 @@ const Register = () => {
         let errorMessage = "Не удалось зарегистрироваться";
         
         if (error.message.includes("email")) {
-          errorMessage = "Данный email адрес не может быть использован для регистрации";
+          errorMessage = "Email адрес недействителен или уже используется. Пожалуйста, используйте другой email.";
         } else if (error.message.includes("password")) {
           errorMessage = "Проблема с паролем. Убедитесь, что он содержит минимум 6 символов";
         }
