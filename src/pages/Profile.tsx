@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
+import AccountManagement from "@/components/profile/AccountManagement";
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
@@ -90,6 +91,8 @@ const Profile = () => {
               </div>
             </div>
           </div>
+
+          <AccountManagement />
         </div>
       </div>
     </div>
