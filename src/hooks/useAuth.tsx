@@ -21,23 +21,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          username: session.user.user_metadata.username || "User",
-          email: session.user.email || "",
-          role: session.user.user_metadata.role || "user",
-          createdAt: new Date(session.user.created_at),
-        });
+    // Initialize auth state
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        if (session?.user) {
+          setUser({
+            id: session.user.id,
+            username: session.user.user_metadata.username || "User",
+            email: session.user.email || "",
+            role: session.user.user_metadata.role || "user",
+            createdAt: new Date(session.user.created_at),
+          });
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+        setSession(null);
+        setUser(null);
       }
-    });
+    };
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    initAuth();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session);
       setSession(session);
+      
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -51,50 +62,63 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) throw error;
-    
-    if (data.user) {
-      setUser({
-        id: data.user.id,
-        username: data.user.user_metadata.username || "User",
-        email: data.user.email || "",
-        role: data.user.user_metadata.role || "user",
-        createdAt: new Date(data.user.created_at),
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase().trim(),
+        password,
       });
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          username: data.user.user_metadata.username || "User",
+          email: data.user.email || "",
+          role: data.user.user_metadata.role || "user",
+          createdAt: new Date(data.user.created_at),
+        });
+      }
+    } catch (error: any) {
+      console.error("Login error:", error);
+      throw error;
     }
   };
 
   const register = async (email: string, password: string, username: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
-          role: "user",
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
+        password,
+        options: {
+          data: {
+            username,
+            role: "user",
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
-      },
-    });
-    
-    if (error) throw error;
-    
-    if (data.user) {
-      setUser({
-        id: data.user.id,
-        username,
-        email: data.user.email || "",
-        role: "user",
-        createdAt: new Date(data.user.created_at),
       });
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          username,
+          email: data.user.email || "",
+          role: "user",
+          createdAt: new Date(data.user.created_at),
+        });
+      }
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      throw error;
     }
   };
 
@@ -104,18 +128,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
       setSession(null);
       
-      // Then attempt to sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Logout error:", error);
-        toast({
-          title: "Ошибка",
-          description: "Произошла ошибка при выходе",
-          variant: "destructive",
-        });
-      }
+      // Then sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Clear any persisted session
+      localStorage.removeItem('supabase.auth.token');
+      
     } catch (error) {
       console.error("Logout error:", error);
+      throw error;
     }
   };
 

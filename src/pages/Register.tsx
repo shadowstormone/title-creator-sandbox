@@ -3,19 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 
 const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const isValidEmail = (email: string) => {
-    // More strict email validation regex
-    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return emailRegex.test(email) && email.length <= 254; // RFC 5321
+    // Basic email validation that accepts more TLDs
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email.toLowerCase().trim());
   };
 
   const createProfile = async (userId: string, username: string) => {
@@ -35,8 +37,10 @@ const Register = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!isValidEmail(email)) {
+    
+    const trimmedEmail = email.toLowerCase().trim();
+    
+    if (!isValidEmail(trimmedEmail)) {
       toast({
         title: "Ошибка",
         description: "Пожалуйста, введите корректный email адрес",
@@ -63,15 +67,18 @@ const Register = () => {
       return;
     }
 
+    setIsLoading(true);
+
     try {
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
-        email: email.toLowerCase().trim(), // Normalize email
+        email: trimmedEmail,
         password,
         options: {
           data: {
             username,
             role: "user",
           },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -82,20 +89,20 @@ const Register = () => {
         
         toast({
           title: "Успешная регистрация",
-          description: "Добро пожаловать!",
+          description: "Пожалуйста, подтвердите ваш email адрес",
         });
-        navigate("/");
+        
+        navigate("/login");
       }
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
+      
       let errorMessage = "Не удалось зарегистрироваться";
       
-      if (error.message?.includes("email_address_invalid")) {
-        errorMessage = "Некорректный email адрес";
-      } else if (error.message?.includes("weak_password")) {
-        errorMessage = "Пароль слишком простой. Используйте минимум 6 символов";
-      } else if (error.message?.includes("already registered")) {
-        errorMessage = "Этот email уже зарегистрирован";
+      if (error.message?.includes("email")) {
+        errorMessage = "Некорректный email адрес или он уже используется";
+      } else if (error.message?.includes("password")) {
+        errorMessage = "Некорректный пароль";
       }
       
       toast({
@@ -103,6 +110,8 @@ const Register = () => {
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -125,10 +134,10 @@ const Register = () => {
                 id="username"
                 type="text"
                 required
-                minLength={3}
                 className="mt-1"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                disabled={isLoading}
               />
             </div>
 
@@ -143,6 +152,7 @@ const Register = () => {
                 className="mt-1"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
               />
             </div>
 
@@ -154,18 +164,26 @@ const Register = () => {
                 id="password"
                 type="password"
                 required
-                minLength={6}
                 className="mt-1"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
               <p className="mt-1 text-sm text-gray-400">
                 Минимум 6 символов
               </p>
             </div>
 
-            <Button type="submit" className="w-full">
-              Зарегистрироваться
+            <div className="flex items-center justify-between">
+              <div className="text-sm">
+                <Link to="/login" className="text-blue-400 hover:text-blue-300">
+                  Уже есть аккаунт? Войдите
+                </Link>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Регистрация..." : "Зарегистрироваться"}
             </Button>
           </form>
         </div>
