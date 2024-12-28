@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showVerificationAlert, setShowVerificationAlert] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -21,6 +23,7 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowVerificationAlert(false);
     
     // Validate email format
     if (!validateEmail(email)) {
@@ -56,14 +59,12 @@ const Login = () => {
       
       let errorMessage = "Не удалось войти в систему";
       
-      if (error.message?.includes("email_not_confirmed")) {
+      if (error.message?.includes("email_not_confirmed") || 
+          (error.error?.message && error.error.message.includes("Email not confirmed"))) {
+        setShowVerificationAlert(true);
         errorMessage = "Пожалуйста, подтвердите ваш email адрес. Проверьте вашу почту.";
-      } else if (error.message?.includes("invalid_credentials")) {
+      } else if (error.message?.includes("Invalid login credentials")) {
         errorMessage = "Неверный email или пароль";
-      } else if (error.message?.includes("email")) {
-        errorMessage = "Некорректный email адрес";
-      } else if (error.message?.includes("password")) {
-        errorMessage = "Некорректный пароль";
       }
       
       toast({
@@ -86,6 +87,15 @@ const Login = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {showVerificationAlert && (
+            <Alert className="mb-6">
+              <AlertDescription>
+                Ваш email адрес не подтвержден. Пожалуйста, проверьте вашу почту и перейдите по ссылке для подтверждения. 
+                Если вы не получили письмо, проверьте папку "Спам".
+              </AlertDescription>
+            </Alert>
+          )}
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300">
