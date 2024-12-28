@@ -15,8 +15,8 @@ const Register = () => {
   const { toast } = useToast();
 
   const isValidEmail = (email: string) => {
-    // RFC 5322 compliant email regex
-    const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    // Simpler email validation that better handles international domains
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email.toLowerCase().trim());
   };
 
@@ -83,10 +83,15 @@ const Register = () => {
       });
 
       if (signUpError) {
-        if (signUpError.message.includes("email_address_invalid")) {
-          throw new Error("Некорректный email адрес. Пожалуйста, проверьте правильность написания.");
+        let errorMessage = "Не удалось зарегистрироваться";
+        
+        if (signUpError.message.includes("email")) {
+          errorMessage = "Некорректный email адрес или он уже используется";
+        } else if (signUpError.message.includes("password")) {
+          errorMessage = "Некорректный пароль";
         }
-        throw signUpError;
+        
+        throw new Error(errorMessage);
       }
 
       if (user) {
@@ -102,17 +107,9 @@ const Register = () => {
     } catch (error: any) {
       console.error("Registration error:", error);
       
-      let errorMessage = "Не удалось зарегистрироваться";
-      
-      if (error.message?.includes("email")) {
-        errorMessage = "Некорректный email адрес или он уже используется";
-      } else if (error.message?.includes("password")) {
-        errorMessage = "Некорректный пароль";
-      }
-      
       toast({
         title: "Ошибка",
-        description: errorMessage,
+        description: error.message || "Произошла ошибка при регистрации",
         variant: "destructive",
       });
     } finally {
