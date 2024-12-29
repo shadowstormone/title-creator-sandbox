@@ -17,6 +17,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -28,8 +29,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-        setSession(null);
-        setUser(null);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -59,7 +60,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error loading profile:", error);
+        setUser(null);
+        return;
+      }
 
       if (profile) {
         setUser({
@@ -138,10 +143,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
+      await supabase.auth.signOut();
       setUser(null);
       setSession(null);
-      await supabase.auth.signOut();
-      localStorage.removeItem('supabase.auth.token');
     } catch (error) {
       console.error("Logout error:", error);
       throw error;
@@ -169,6 +173,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       throw error;
     }
   };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <AuthContext.Provider value={{ user, session, login, register, logout, updateProfile }}>

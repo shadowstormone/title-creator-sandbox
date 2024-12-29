@@ -29,26 +29,15 @@ const AnimeEdit = () => {
 
         if (error) {
           console.error('Error details:', error);
-          if (error.code === 'PGRST116') {
-            toast({
-              title: "Аниме не найдено",
-              description: "Запрошенное аниме не существует",
-              variant: "destructive",
-            });
-            navigate('/admin');
-            return;
-          }
           throw error;
         }
         
         if (data) {
           console.log('Fetched anime data:', data);
-          // Ensure genres is always an array
-          const formattedData = {
+          setAnimeData({
             ...data,
             genres: Array.isArray(data.genres) ? data.genres : []
-          };
-          setAnimeData(formattedData);
+          });
         } else {
           toast({
             title: "Аниме не найдено",
@@ -71,17 +60,20 @@ const AnimeEdit = () => {
     };
 
     fetchAnime();
-  }, [id, toast, navigate]);
+  }, [id, navigate, toast]);
 
-  const handleAnimeUpdate = async (data: any) => {
+  const handleAnimeUpdate = async (formData: any) => {
     try {
-      console.log('Updating anime with data:', data);
+      console.log('Updating anime with data:', formData);
+      
+      // Remove any undefined or null values
+      const cleanedData = Object.fromEntries(
+        Object.entries(formData).filter(([_, v]) => v != null)
+      );
+
       const { error } = await supabase
         .from('animes')
-        .update({
-          ...data,
-          genres: Array.isArray(data.genres) ? data.genres : []
-        })
+        .update(cleanedData)
         .eq('id', id);
 
       if (error) throw error;
@@ -107,14 +99,14 @@ const AnimeEdit = () => {
   }
 
   if (!animeData) {
-    return null; // We'll navigate away before this renders
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-4xl mx-auto space-y-8">
         <h1 className="text-4xl font-bold text-purple-400">
-          Редактирование: {animeData?.title}
+          Редактирование: {animeData.title}
         </h1>
 
         <Card className="bg-gray-800 border-gray-700">

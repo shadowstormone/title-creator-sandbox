@@ -7,36 +7,54 @@ import CommentList from "@/components/comments/CommentList";
 import AnimeRating from "@/components/anime/AnimeRating";
 import { useToast } from "@/components/ui/use-toast";
 import { Comment, Rating } from "@/lib/types";
+import { supabase } from "@/lib/supabaseClient";
 
 const AnimeDetails = () => {
-  const { id } = useParams();
+  const { id, titleEn } = useParams();
   const { toast } = useToast();
   const [player, setPlayer] = useState<Artplayer | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState("1");
   const [comments, setComments] = useState<Comment[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
-
-  // Временные данные (в будущем будут загружаться из базы данных)
-  const animeData = {
-    title: "Наруто",
-    titleEn: "Naruto",
-    description: "История о молодом ниндзя Наруто Узумаки, мечтающем стать Хокаге — сильнейшим ниндзя и главой своей деревни.",
-    image: "https://images.unsplash.com/photo-1518770660439-4636190af475",
-    genres: ["Сёнен", "Боевик", "Приключения"],
-    totalEpisodes: 220,
-    uploadedEpisodes: 210,
-    year: 2002,
-    season: "Осень",
-    studio: "Studio Pierrot",
-    voiceActing: "AniLibria",
-    timing: "Timing Team",
-    videoUrl: "https://example.com/video.mp4",
-  };
+  const [animeData, setAnimeData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchAnimeData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('animes')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          console.log("Fetched anime data:", data);
+          setAnimeData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching anime:', error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить данные аниме",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnimeData();
+  }, [id]);
+
+  useEffect(() => {
+    if (!animeData?.video_url) return;
+
     const art = new Artplayer({
       container: ".artplayer-app",
-      url: `${animeData.videoUrl}?episode=${currentEpisode}`,
+      url: `${animeData.video_url}?episode=${currentEpisode}`,
       volume: 0.5,
       isLive: false,
       muted: false,
@@ -69,96 +87,22 @@ const AnimeDetails = () => {
         art.destroy(false);
       }
     };
-  }, [currentEpisode]);
+  }, [currentEpisode, animeData]);
 
   const handleEpisodeChange = (episode: string) => {
     setCurrentEpisode(episode);
-    if (player) {
-      player.switchUrl(`${animeData.videoUrl}?episode=${episode}`);
+    if (player && animeData?.video_url) {
+      player.switchUrl(`${animeData.video_url}?episode=${episode}`);
     }
   };
 
-  const handleAddComment = (content: string) => {
-    const newComment: Comment = {
-      id: String(comments.length + 1),
-      userId: "1", // Replace with actual user ID
-      animeId: Number(id),
-      content,
-      createdAt: new Date(),
-      likes: [],
-      dislikes: [],
-    };
-    setComments([...comments, newComment]);
-    toast({
-      title: "Комментарий добавлен",
-      description: "Ваш комментарий успешно добавлен",
-    });
-  };
+  if (loading) {
+    return <div className="min-h-screen bg-gray-900 text-white p-6">Загрузка...</div>;
+  }
 
-  const handleDeleteComment = (commentId: string) => {
-    setComments(comments.filter(c => c.id !== commentId));
-    toast({
-      title: "Комментарий удален",
-      description: "Комментарий успешно удален",
-    });
-  };
-
-  const handleEditComment = (commentId: string, content: string) => {
-    setComments(comments.map(c => 
-      c.id === commentId ? { ...c, content } : c
-    ));
-    toast({
-      title: "Комментарий изменен",
-      description: "Комментарий успешно изменен",
-    });
-  };
-
-  const handleLikeComment = (commentId: string) => {
-    setComments(comments.map(c => {
-      if (c.id === commentId) {
-        const hasLiked = c.likes.includes("1"); // Replace with actual user ID
-        const likes = hasLiked
-          ? c.likes.filter(id => id !== "1")
-          : [...c.likes, "1"];
-        return {
-          ...c,
-          likes,
-          dislikes: c.dislikes.filter(id => id !== "1"),
-        };
-      }
-      return c;
-    }));
-  };
-
-  const handleDislikeComment = (commentId: string) => {
-    setComments(comments.map(c => {
-      if (c.id === commentId) {
-        const hasDisliked = c.dislikes.includes("1"); // Replace with actual user ID
-        const dislikes = hasDisliked
-          ? c.dislikes.filter(id => id !== "1")
-          : [...c.dislikes, "1"];
-        return {
-          ...c,
-          dislikes,
-          likes: c.likes.filter(id => id !== "1"),
-        };
-      }
-      return c;
-    }));
-  };
-
-  const handleRate = (score: number) => {
-    const newRating: Rating = {
-      userId: "1", // Replace with actual user ID
-      animeId: Number(id),
-      score,
-    };
-    setRatings([...ratings.filter(r => r.userId !== "1"), newRating]);
-    toast({
-      title: "Оценка добавлена",
-      description: "Ваша оценка успешно сохранена",
-    });
-  };
+  if (!animeData) {
+    return <div className="min-h-screen bg-gray-900 text-white p-6">Аниме не найдено</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -167,7 +111,7 @@ const AnimeDetails = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <img
-                src={animeData.image}
+                src={animeData.image_url || "/placeholder.svg"}
                 alt={animeData.title}
                 className="w-full h-[400px] object-cover rounded-lg"
               />
@@ -175,12 +119,25 @@ const AnimeDetails = () => {
                 <AnimeRating
                   ratings={ratings}
                   animeId={Number(id)}
-                  onRate={handleRate}
+                  onRate={(score) => {
+                    const newRating: Rating = {
+                      userId: "1",
+                      animeId: Number(id),
+                      score,
+                    };
+                    setRatings([...ratings.filter(r => r.userId !== "1"), newRating]);
+                    toast({
+                      title: "Оценка добавлена",
+                      description: "Ваша оценка успешно сохранена",
+                    });
+                  }}
                 />
               </div>
             </div>
             <div className="space-y-4">
-              <h1 className="text-3xl font-bold text-purple-400">{animeData.title}</h1>
+              <h1 className="text-3xl font-bold text-purple-400">
+                {animeData.title} / {animeData.title_en}
+              </h1>
               <p className="text-gray-300">{animeData.description}</p>
               
               <div className="grid grid-cols-2 gap-4">
@@ -190,8 +147,8 @@ const AnimeDetails = () => {
                     <li>Год: {animeData.year}</li>
                     <li>Сезон: {animeData.season}</li>
                     <li>Студия: {animeData.studio}</li>
-                    <li>Серии: {animeData.uploadedEpisodes} из {animeData.totalEpisodes}</li>
-                    <li>Озвучка: {animeData.voiceActing}</li>
+                    <li>Серии: {animeData.uploaded_episodes} из {animeData.total_episodes}</li>
+                    <li>Озвучка: {animeData.voice_acting}</li>
                     <li>Тайминг: {animeData.timing}</li>
                   </ul>
                 </div>
@@ -199,7 +156,7 @@ const AnimeDetails = () => {
                 <div>
                   <h3 className="text-xl font-semibold text-purple-400 mb-2">Жанры:</h3>
                   <div className="flex flex-wrap gap-2">
-                    {animeData.genres.map((genre) => (
+                    {animeData.genres?.map((genre: string) => (
                       <span
                         key={genre}
                         className="px-3 py-1 bg-purple-600 rounded-full text-sm"
@@ -220,7 +177,7 @@ const AnimeDetails = () => {
                 <SelectValue placeholder="Выберите серию" />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: animeData.uploadedEpisodes }, (_, i) => (
+                {Array.from({ length: animeData.uploaded_episodes || 0 }, (_, i) => (
                   <SelectItem key={i + 1} value={(i + 1).toString()}>
                     Серия {i + 1}
                   </SelectItem>
@@ -237,11 +194,70 @@ const AnimeDetails = () => {
           <CommentList
             animeId={Number(id)}
             comments={comments}
-            onAddComment={handleAddComment}
-            onDeleteComment={handleDeleteComment}
-            onEditComment={handleEditComment}
-            onLikeComment={handleLikeComment}
-            onDislikeComment={handleDislikeComment}
+            onAddComment={(content: string) => {
+              const newComment: Comment = {
+                id: String(comments.length + 1),
+                userId: "1",
+                animeId: Number(id),
+                content,
+                createdAt: new Date(),
+                likes: [],
+                dislikes: [],
+              };
+              setComments([...comments, newComment]);
+              toast({
+                title: "Комментарий добавлен",
+                description: "Ваш комментарий успешно добавлен",
+              });
+            }}
+            onDeleteComment={(commentId: string) => {
+              setComments(comments.filter(c => c.id !== commentId));
+              toast({
+                title: "Комментарий удален",
+                description: "Комментарий успешно удален",
+              });
+            }}
+            onEditComment={(commentId: string, content: string) => {
+              setComments(comments.map(c => 
+                c.id === commentId ? { ...c, content } : c
+              ));
+              toast({
+                title: "Комментарий изменен",
+                description: "Комментарий успешно изменен",
+              });
+            }}
+            onLikeComment={(commentId: string) => {
+              setComments(comments.map(c => {
+                if (c.id === commentId) {
+                  const hasLiked = c.likes.includes("1");
+                  const likes = hasLiked
+                    ? c.likes.filter(id => id !== "1")
+                    : [...c.likes, "1"];
+                  return {
+                    ...c,
+                    likes,
+                    dislikes: c.dislikes.filter(id => id !== "1"),
+                  };
+                }
+                return c;
+              }));
+            }}
+            onDislikeComment={(commentId: string) => {
+              setComments(comments.map(c => {
+                if (c.id === commentId) {
+                  const hasDisliked = c.dislikes.includes("1");
+                  const dislikes = hasDisliked
+                    ? c.dislikes.filter(id => id !== "1")
+                    : [...c.dislikes, "1"];
+                  return {
+                    ...c,
+                    dislikes,
+                    likes: c.likes.filter(id => id !== "1"),
+                  };
+                }
+                return c;
+              }));
+            }}
           />
         </Card>
       </div>
