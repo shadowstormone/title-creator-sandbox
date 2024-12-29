@@ -19,10 +19,10 @@ import Support from "./pages/Support";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <BrowserRouter>
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
           <Toaster />
           <Sonner />
           <Navbar />
@@ -37,10 +37,10 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/support" element={<Support />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </BrowserRouter>
 );
 
 export default App;
