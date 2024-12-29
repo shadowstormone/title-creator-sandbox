@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { Anime } from "@/lib/types";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/AuthProvider";
 import AnimeGrid from "@/components/anime/AnimeGrid";
 import AnimeFilters from "@/components/anime/AnimeFilters";
 
@@ -23,13 +23,13 @@ const Index = () => {
   }, []);
 
   const fetchAnimeList = async () => {
-    console.log("fetchAnimeList started, current loading state:", loading);
+    console.log("fetchAnimeList started");
     try {
       const { data, error } = await supabase
         .from('animes')
         .select('*');
 
-      console.log("Supabase response received:", { data, error });
+      console.log("Supabase response:", { data, error });
 
       if (error) {
         console.error('Error fetching anime:', error);
@@ -39,14 +39,11 @@ const Index = () => {
           variant: "destructive",
         });
         setAnimeList([]);
-        return;
-      }
-
-      if (!data) {
-        console.log("No data received from Supabase");
+      } else if (!data) {
+        console.log("No data received");
         setAnimeList([]);
       } else {
-        console.log("Setting anime list with data:", data.length, "items");
+        console.log("Setting anime list:", data.length, "items");
         setAnimeList(data);
       }
     } catch (error) {
@@ -79,14 +76,16 @@ const Index = () => {
   const allSeasons = ["Зима", "Весна", "Лето", "Осень"];
   const allStudios = Array.from(new Set(animeList.map(anime => anime.studio)));
 
-  console.log("Render state:", { loading, animeListLength: animeList.length });
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p>Загрузка...</p>
+      <div className="min-h-screen bg-gray-900 text-white p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-center items-center h-[60vh]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+              <p>Загрузка...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
