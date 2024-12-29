@@ -14,10 +14,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
+
+  const startSessionTimer = () => {
+    if (sessionTimer) {
+      clearTimeout(sessionTimer);
+    }
+    const timer = setTimeout(() => {
+      logout();
+    }, SESSION_TIMEOUT);
+    setSessionTimer(timer);
+  };
 
   useEffect(() => {
     const initAuth = async () => {
@@ -26,6 +39,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         if (session?.user) {
           await loadUserProfile(session.user.id);
+          startSessionTimer();
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
@@ -42,13 +56,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (session?.user) {
         await loadUserProfile(session.user.id);
+        startSessionTimer();
       } else {
         setUser(null);
+        if (sessionTimer) {
+          clearTimeout(sessionTimer);
+        }
       }
     });
 
     return () => {
       subscription.unsubscribe();
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+      }
     };
   }, []);
 
@@ -146,6 +167,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+      }
     } catch (error) {
       console.error("Logout error:", error);
       throw error;

@@ -1,20 +1,10 @@
 import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Search } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { Anime } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
+import AnimeGrid from "@/components/anime/AnimeGrid";
+import AnimeFilters from "@/components/anime/AnimeFilters";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,7 +38,8 @@ const Index = () => {
           description: "Не удалось загрузить список аниме",
           variant: "destructive",
         });
-        throw error;
+        setAnimeList([]);
+        return;
       }
 
       if (!data) {
@@ -65,6 +56,7 @@ const Index = () => {
         description: "Не удалось загрузить список аниме",
         variant: "destructive",
       });
+      setAnimeList([]);
     } finally {
       console.log("Setting loading to false");
       setLoading(false);
@@ -107,96 +99,24 @@ const Index = () => {
           <h1 className="text-4xl font-bold text-purple-400">Anime Portal</h1>
         </div>
         
-        <div className="space-y-6 mb-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Поиск аниме..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-400 focus:ring-purple-500 focus:border-purple-500"
-            />
-          </div>
+        <AnimeFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedGenre={selectedGenre}
+          setSelectedGenre={setSelectedGenre}
+          selectedYear={selectedYear}
+          setSelectedYear={setSelectedYear}
+          selectedSeason={selectedSeason}
+          setSelectedSeason={setSelectedSeason}
+          selectedStudio={selectedStudio}
+          setSelectedStudio={setSelectedStudio}
+          allGenres={allGenres}
+          allYears={allYears}
+          allSeasons={allSeasons}
+          allStudios={allStudios}
+        />
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
-                <SelectValue placeholder="Год" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 text-gray-100">
-                <SelectItem value="all">Все годы</SelectItem>
-                {allYears.map(year => (
-                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedSeason} onValueChange={setSelectedSeason}>
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
-                <SelectValue placeholder="Сезон" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 text-gray-100">
-                <SelectItem value="all">Все сезоны</SelectItem>
-                {allSeasons.map(season => (
-                  <SelectItem key={season} value={season}>{season}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedStudio} onValueChange={setSelectedStudio}>
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
-                <SelectValue placeholder="Студия" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 text-gray-100">
-                <SelectItem value="all">Все студии</SelectItem>
-                {allStudios.map(studio => (
-                  <SelectItem key={studio} value={studio}>{studio}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedGenre} onValueChange={setSelectedGenre}>
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
-                <SelectValue placeholder="Жанр" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 text-gray-100">
-                <SelectItem value="all">Все жанры</SelectItem>
-                {allGenres.map(genre => (
-                  <SelectItem key={genre} value={genre}>{genre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredAnime.map((anime) => (
-            <Link to={`/anime/${anime.id}/${anime.title_en}`} key={anime.id}>
-              <Card className="bg-gray-800 border-gray-700 hover:border-purple-500 transition-all duration-300">
-                <CardContent className="p-4">
-                  <div className="aspect-[3/4] relative mb-3">
-                    <img
-                      src={anime.image_url || '/placeholder.svg'}
-                      alt={anime.title}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                  </div>
-                  <h3 className="text-lg font-semibold text-purple-400 hover:text-purple-300">
-                    {anime.title}
-                  </h3>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {anime.genres.map((genre) => (
-                      <Badge key={genre} variant="outline" className="text-xs text-gray-300">
-                        {genre}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        <AnimeGrid animeList={filteredAnime} />
       </div>
     </div>
   );
