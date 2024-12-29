@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import AnimeForm from "@/components/admin/AnimeForm";
 import UserManagement from "@/components/admin/UserManagement";
 import { supabase } from "@/lib/supabaseClient";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/AuthProvider";
 import { Anime } from "@/lib/types";
 
 const Admin = () => {
