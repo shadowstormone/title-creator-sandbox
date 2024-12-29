@@ -3,7 +3,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -15,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { Anime } from "@/lib/types";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,21 +25,29 @@ const Index = () => {
   const [animeList, setAnimeList] = useState<Anime[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
+    console.log("Fetching anime list...");
     fetchAnimeList();
   }, []);
 
   const fetchAnimeList = async () => {
     try {
+      console.log("Starting anime fetch");
       const { data, error } = await supabase
         .from('animes')
         .select('*');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching anime:', error);
+        throw error;
+      }
+
+      console.log("Fetched anime data:", data);
       setAnimeList(data || []);
     } catch (error) {
-      console.error('Error fetching anime:', error);
+      console.error('Error in fetchAnimeList:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось загрузить список аниме",
@@ -67,7 +75,14 @@ const Index = () => {
   });
 
   if (loading) {
-    return <div className="min-h-screen bg-gray-900 text-white p-6">Загрузка...</div>;
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p>Загрузка...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
