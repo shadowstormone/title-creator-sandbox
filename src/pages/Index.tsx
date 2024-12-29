@@ -28,24 +28,36 @@ const Index = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    console.log("Fetching anime list...");
+    console.log("Component mounted, starting initial fetch");
     fetchAnimeList();
   }, []);
 
   const fetchAnimeList = async () => {
+    console.log("fetchAnimeList started, current loading state:", loading);
     try {
-      console.log("Starting anime fetch");
       const { data, error } = await supabase
         .from('animes')
         .select('*');
 
+      console.log("Supabase response received:", { data, error });
+
       if (error) {
         console.error('Error fetching anime:', error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить список аниме",
+          variant: "destructive",
+        });
         throw error;
       }
 
-      console.log("Fetched anime data:", data);
-      setAnimeList(data || []);
+      if (!data) {
+        console.log("No data received from Supabase");
+        setAnimeList([]);
+      } else {
+        console.log("Setting anime list with data:", data.length, "items");
+        setAnimeList(data);
+      }
     } catch (error) {
       console.error('Error in fetchAnimeList:', error);
       toast({
@@ -54,14 +66,10 @@ const Index = () => {
         variant: "destructive",
       });
     } finally {
+      console.log("Setting loading to false");
       setLoading(false);
     }
   };
-
-  const allGenres = Array.from(new Set(animeList.flatMap(anime => anime.genres)));
-  const allYears = Array.from(new Set(animeList.map(anime => anime.year))).sort((a, b) => b - a);
-  const allSeasons = ["Зима", "Весна", "Лето", "Осень"];
-  const allStudios = Array.from(new Set(animeList.map(anime => anime.studio)));
 
   const filteredAnime = animeList.filter((anime) => {
     const matchesSearch = anime.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -73,6 +81,13 @@ const Index = () => {
 
     return matchesSearch && matchesGenre && matchesYear && matchesSeason && matchesStudio;
   });
+
+  const allGenres = Array.from(new Set(animeList.flatMap(anime => anime.genres)));
+  const allYears = Array.from(new Set(animeList.map(anime => anime.year))).sort((a, b) => b - a);
+  const allSeasons = ["Зима", "Весна", "Лето", "Осень"];
+  const allStudios = Array.from(new Set(animeList.map(anime => anime.studio)));
+
+  console.log("Render state:", { loading, animeListLength: animeList.length });
 
   if (loading) {
     return (
