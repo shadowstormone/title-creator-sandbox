@@ -5,6 +5,7 @@ import { Anime } from "@/lib/types";
 import { useAuth } from "@/hooks/auth/AuthProvider";
 import AnimeGrid from "@/components/anime/AnimeGrid";
 import AnimeFilters from "@/components/anime/AnimeFilters";
+import { Loader2 } from "lucide-react";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -18,18 +19,14 @@ const Index = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    console.log("Component mounted, starting initial fetch");
     fetchAnimeList();
   }, []);
 
   const fetchAnimeList = async () => {
-    console.log("fetchAnimeList started");
     try {
       const { data, error } = await supabase
         .from('animes')
         .select('*');
-
-      console.log("Supabase response:", { data, error });
 
       if (error) {
         console.error('Error fetching anime:', error);
@@ -39,12 +36,8 @@ const Index = () => {
           variant: "destructive",
         });
         setAnimeList([]);
-      } else if (!data) {
-        console.log("No data received");
-        setAnimeList([]);
       } else {
-        console.log("Setting anime list:", data.length, "items");
-        setAnimeList(data);
+        setAnimeList(data || []);
       }
     } catch (error) {
       console.error('Error in fetchAnimeList:', error);
@@ -55,7 +48,6 @@ const Index = () => {
       });
       setAnimeList([]);
     } finally {
-      console.log("Setting loading to false");
       setLoading(false);
     }
   };
@@ -82,7 +74,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-center items-center h-[60vh]">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+              <Loader2 className="h-12 w-12 animate-spin text-purple-500 mx-auto mb-4" />
               <p>Загрузка...</p>
             </div>
           </div>
