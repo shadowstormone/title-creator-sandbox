@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { User } from "@/lib/types";
 import { useAuthStore } from "./useAuthStore";
 import { useAuthMethods } from "./useAuthMethods";
+import { Loader2 } from "lucide-react";
 
 interface AuthContextType {
   user: User | null;
@@ -21,16 +22,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const methods = useAuthMethods();
 
   useEffect(() => {
+    console.log("AuthProvider: Initializing auth...");
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log("AuthProvider: Got session:", session);
         setSession(session);
+        
         if (session?.user) {
+          console.log("AuthProvider: Loading user profile...");
           await methods.loadUserProfile(session.user.id);
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
       } finally {
+        console.log("AuthProvider: Setting loading to false");
         setLoading(false);
       }
     };
@@ -43,9 +49,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (session?.user) {
         await methods.loadUserProfile(session.user.id);
-      } else {
-        setLoading(false);
       }
+      setLoading(false);
     });
 
     return () => {
@@ -54,7 +59,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   if (loading) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+      </div>
+    );
   }
 
   return (

@@ -7,6 +7,7 @@ export const useAuthMethods = () => {
 
   const loadUserProfile = async (userId: string) => {
     try {
+      console.log("Loading user profile for ID:", userId);
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -20,6 +21,7 @@ export const useAuthMethods = () => {
       }
 
       if (profile) {
+        console.log("Profile loaded:", profile);
         setUser({
           id: userId,
           username: profile.username || "User",
@@ -31,8 +33,6 @@ export const useAuthMethods = () => {
     } catch (error) {
       console.error("Error loading user profile:", error);
       setUser(null);
-    } finally {
-      setLoading(false);
     }
   };
 
