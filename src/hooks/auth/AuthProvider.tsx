@@ -21,30 +21,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { user, session, loading, setSession, setLoading, setUser } = useAuthStore();
   const methods = useAuthMethods();
   const mounted = useRef(true);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    console.log("AuthProvider: Initializing auth...");
-    
+    if (initialized.current) return;
+    initialized.current = true;
+
+    console.log("AuthProvider: Initial render, showing content immediately");
+    setLoading(false);
+
     const initAuth = async () => {
       try {
+        console.log("AuthProvider: Checking existing session...");
         const { data: { session } } = await supabase.auth.getSession();
-        console.log("AuthProvider: Got session:", session);
         
-        if (mounted.current) {
+        if (!mounted.current) return;
+
+        if (session?.user) {
+          console.log("AuthProvider: Found existing session, loading user profile");
           setSession(session);
-          if (session?.user) {
-            console.log("AuthProvider: Loading user profile...");
-            await methods.loadUserProfile(session.user.id);
-          } else {
-            setUser(null);
-          }
-          setLoading(false);
+          await methods.loadUserProfile(session.user.id);
+        } else {
+          console.log("AuthProvider: No existing session");
+          setUser(null);
+          setSession(null);
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
         if (mounted.current) {
           setUser(null);
-          setLoading(false);
+          setSession(null);
         }
       }
     };
@@ -54,14 +60,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session);
       
-      if (mounted.current) {
+      if (!mounted.current) return;
+
+      if (session?.user) {
         setSession(session);
-        if (session?.user) {
-          await methods.loadUserProfile(session.user.id);
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
+        await methods.loadUserProfile(session.user.id);
+      } else {
+        setUser(null);
+        setSession(null);
       }
     });
 
@@ -70,14 +76,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-      </div>
-    );
-  }
 
   return (
     <AuthContext.Provider value={{ user, session, ...methods }}>

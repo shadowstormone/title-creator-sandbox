@@ -21,7 +21,7 @@ export const useAuthMethods = () => {
       }
 
       if (profile) {
-        console.log("Profile loaded:", profile);
+        console.log("Profile loaded successfully:", profile);
         setUser({
           id: userId,
           username: profile.username || "User",
@@ -57,10 +57,6 @@ export const useAuthMethods = () => {
           throw new Error("Ошибка входа. Попробуйте позже");
         }
       }
-
-      if (data.user) {
-        await loadUserProfile(data.user.id);
-      }
     } catch (error: any) {
       console.error("Login error:", error);
       throw error;
@@ -82,16 +78,6 @@ export const useAuthMethods = () => {
       });
       
       if (error) throw error;
-      
-      if (data.user) {
-        setUser({
-          id: data.user.id,
-          username,
-          email: data.user.email || "",
-          role: "user",
-          createdAt: new Date(data.user.created_at),
-        });
-      }
     } catch (error: any) {
       console.error("Registration error:", error);
       throw error;
