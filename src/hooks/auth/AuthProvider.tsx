@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import { User } from "@/lib/types";
@@ -20,9 +20,9 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { user, session, loading, setSession, setLoading, setUser } = useAuthStore();
   const methods = useAuthMethods();
+  const mounted = useRef(true);
 
   useEffect(() => {
-    let mounted = true;
     console.log("AuthProvider: Initializing auth...");
     
     const initAuth = async () => {
@@ -30,17 +30,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { data: { session } } = await supabase.auth.getSession();
         console.log("AuthProvider: Got session:", session);
         
-        if (mounted) {
+        if (mounted.current) {
           setSession(session);
           if (session?.user) {
             console.log("AuthProvider: Loading user profile...");
             await methods.loadUserProfile(session.user.id);
+          } else {
+            setUser(null);
           }
           setLoading(false);
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-        if (mounted) {
+        if (mounted.current) {
+          setUser(null);
           setLoading(false);
         }
       }
@@ -51,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session);
       
-      if (mounted) {
+      if (mounted.current) {
         setSession(session);
         if (session?.user) {
           await methods.loadUserProfile(session.user.id);
@@ -63,7 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => {
-      mounted = false;
+      mounted.current = false;
       subscription.unsubscribe();
     };
   }, []);

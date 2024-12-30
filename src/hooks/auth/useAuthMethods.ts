@@ -29,6 +29,9 @@ export const useAuthMethods = () => {
           role: profile.role || "user",
           createdAt: new Date(profile.created_at),
         });
+      } else {
+        console.log("No profile found for user:", userId);
+        setUser(null);
       }
     } catch (error) {
       console.error("Error loading user profile:", error);
