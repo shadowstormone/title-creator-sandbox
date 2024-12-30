@@ -3,7 +3,7 @@ import { User } from '@/lib/types';
 import { useAuthStore } from './useAuthStore';
 
 export const useAuthMethods = () => {
-  const { setUser, setLoading } = useAuthStore();
+  const { setUser } = useAuthStore();
 
   const loadUserProfile = async (userId: string) => {
     try {

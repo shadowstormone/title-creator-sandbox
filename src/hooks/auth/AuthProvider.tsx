@@ -22,22 +22,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const methods = useAuthMethods();
 
   useEffect(() => {
+    let mounted = true;
     console.log("AuthProvider: Initializing auth...");
+    
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         console.log("AuthProvider: Got session:", session);
-        setSession(session);
         
-        if (session?.user) {
-          console.log("AuthProvider: Loading user profile...");
-          await methods.loadUserProfile(session.user.id);
+        if (mounted) {
+          setSession(session);
+          if (session?.user) {
+            console.log("AuthProvider: Loading user profile...");
+            await methods.loadUserProfile(session.user.id);
+          }
+          setLoading(false);
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-      } finally {
-        console.log("AuthProvider: Setting loading to false");
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -45,15 +50,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session);
-      setSession(session);
       
-      if (session?.user) {
-        await methods.loadUserProfile(session.user.id);
+      if (mounted) {
+        setSession(session);
+        if (session?.user) {
+          await methods.loadUserProfile(session.user.id);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
