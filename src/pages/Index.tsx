@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { Anime } from "@/lib/types";
-import { useAuth } from "@/hooks/auth/AuthProvider";
 import AnimeGrid from "@/components/anime/AnimeGrid";
 import AnimeFilters from "@/components/anime/AnimeFilters";
 import { Loader2 } from "lucide-react";
@@ -16,7 +15,6 @@ const Index = () => {
   const [animeList, setAnimeList] = useState<Anime[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { user } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
@@ -31,6 +29,7 @@ const Index = () => {
 
         if (isMounted) {
           setAnimeList(data || []);
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error fetching anime:', error);
@@ -40,9 +39,6 @@ const Index = () => {
             description: "Не удалось загрузить список аниме",
             variant: "destructive",
           });
-        }
-      } finally {
-        if (isMounted) {
           setLoading(false);
         }
       }
