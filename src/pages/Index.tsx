@@ -19,38 +19,41 @@ const Index = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    fetchAnimeList();
-  }, []);
+    let isMounted = true;
+    
+    const fetchAnimeList = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('animes')
+          .select('*');
 
-  const fetchAnimeList = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('animes')
-        .select('*');
+        if (error) throw error;
 
-      if (error) {
+        if (isMounted) {
+          setAnimeList(data || []);
+        }
+      } catch (error) {
         console.error('Error fetching anime:', error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить список аниме",
-          variant: "destructive",
-        });
-        setAnimeList([]);
-      } else {
-        setAnimeList(data || []);
+        if (isMounted) {
+          toast({
+            title: "Ошибка",
+            description: "Не удалось загрузить список аниме",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    } catch (error) {
-      console.error('Error in fetchAnimeList:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить список аниме",
-        variant: "destructive",
-      });
-      setAnimeList([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchAnimeList();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [toast]);
 
   const filteredAnime = animeList.filter((anime) => {
     const matchesSearch = anime.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

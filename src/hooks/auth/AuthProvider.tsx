@@ -23,17 +23,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!mounted.current) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!mounted.current) return;
 
-        if (session?.user) {
-          setSession(session);
-          await methods.loadUserProfile(session.user.id);
-        }
-      } catch (error) {
-        console.error("Auth initialization error:", error);
+      if (session?.user) {
+        setSession(session);
+        await methods.loadUserProfile(session.user.id);
       }
     };
 
