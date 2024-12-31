@@ -63,7 +63,7 @@ const Navbar = () => {
             <Link to="/" className="flex-shrink-0">
               <img
                 className="h-8 w-auto"
-                src="/logo.png"
+                src="/placeholder.svg"
                 alt="Anime Portal"
               />
             </Link>
