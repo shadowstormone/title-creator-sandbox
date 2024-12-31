@@ -20,7 +20,14 @@ const AnimeDetails = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchAnimeData = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data, error } = await supabase
           .from('animes')
@@ -30,24 +37,32 @@ const AnimeDetails = () => {
 
         if (error) throw error;
 
-        if (data) {
-          console.log("Fetched anime data:", data);
-          setAnimeData(data);
+        if (isMounted) {
+          if (data) {
+            console.log("Fetched anime data:", data);
+            setAnimeData(data);
+          }
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error fetching anime:', error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить данные аниме",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+        if (isMounted) {
+          toast({
+            title: "Ошибка",
+            description: "Не удалось загрузить данные аниме",
+            variant: "destructive",
+          });
+          setLoading(false);
+        }
       }
     };
 
     fetchAnimeData();
-  }, [id]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, toast]);
 
   useEffect(() => {
     if (!animeData?.video_url) return;
@@ -97,11 +112,19 @@ const AnimeDetails = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-gray-900 text-white p-6">Загрузка...</div>;
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-6 flex items-center justify-center">
+        <div className="text-xl">Загрузка...</div>
+      </div>
+    );
   }
 
   if (!animeData) {
-    return <div className="min-h-screen bg-gray-900 text-white p-6">Аниме не найдено</div>;
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-6 flex items-center justify-center">
+        <div className="text-xl">Аниме не найдено</div>
+      </div>
+    );
   }
 
   return (
