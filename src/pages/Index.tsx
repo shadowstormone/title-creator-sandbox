@@ -17,38 +17,33 @@ const Index = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    let isMounted = true;
-    
     const fetchAnimeList = async () => {
       try {
+        console.log("Fetching anime list...");
         const { data, error } = await supabase
           .from('animes')
           .select('*');
 
-        if (error) throw error;
-
-        if (isMounted) {
-          setAnimeList(data || []);
-          setLoading(false);
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
         }
+
+        console.log("Received data:", data);
+        setAnimeList(data || []);
       } catch (error) {
         console.error('Error fetching anime:', error);
-        if (isMounted) {
-          toast({
-            title: "Ошибка",
-            description: "Не удалось загрузить список аниме",
-            variant: "destructive",
-          });
-          setLoading(false);
-        }
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить список аниме",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchAnimeList();
-
-    return () => {
-      isMounted = false;
-    };
   }, [toast]);
 
   const filteredAnime = animeList.filter((anime) => {
