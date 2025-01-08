@@ -41,18 +41,17 @@ const Index = () => {
     retry: 1,
     gcTime: 1000 * 60 * 60, // 1 hour
     staleTime: 1000 * 60 * 5, // 5 minutes
-    onSuccess: (data) => {
-      console.log('Successfully fetched anime list:', data);
-    },
-    onError: (error) => {
-      console.error('Query error:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить список аниме. Пожалуйста, попробуйте позже.",
-        variant: "destructive",
-      });
-    }
   });
+
+  // Handle errors after query execution
+  if (error) {
+    console.error('Query error:', error);
+    toast({
+      title: "Ошибка",
+      description: "Не удалось загрузить список аниме. Пожалуйста, попробуйте позже.",
+      variant: "destructive",
+    });
+  }
 
   const filteredAnime = animeList.filter((anime: Anime) => {
     const matchesSearch = anime.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
