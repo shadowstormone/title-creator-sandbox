@@ -5,6 +5,7 @@ import { Anime } from "@/lib/types";
 import AnimeGrid from "@/components/anime/AnimeGrid";
 import AnimeFilters from "@/components/anime/AnimeFilters";
 import { Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -12,41 +13,38 @@ const Index = () => {
   const [selectedYear, setSelectedYear] = useState("all");
   const [selectedSeason, setSelectedSeason] = useState("all");
   const [selectedStudio, setSelectedStudio] = useState("all");
-  const [animeList, setAnimeList] = useState<Anime[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchAnimeList = async () => {
-      try {
-        console.log("Fetching anime list...");
-        const { data, error } = await supabase
-          .from('animes')
-          .select('*');
+  const fetchAnimeList = async () => {
+    console.log("Fetching anime list...");
+    const { data, error } = await supabase
+      .from('animes')
+      .select('*');
 
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
 
-        console.log("Received data:", data);
-        setAnimeList(data || []);
-      } catch (error) {
-        console.error('Error fetching anime:', error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить список аниме",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+    console.log("Received data:", data);
+    return data || [];
+  };
 
-    fetchAnimeList();
-  }, [toast]);
+  const { data: animeList = [], isLoading, error } = useQuery({
+    queryKey: ['animes'],
+    queryFn: fetchAnimeList,
+    retry: 1,
+    onError: (error) => {
+      console.error('Error fetching anime:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить список аниме. Пожалуйста, попробуйте позже.",
+        variant: "destructive",
+      });
+    },
+  });
 
-  const filteredAnime = animeList.filter((anime) => {
+  const filteredAnime = animeList.filter((anime: Anime) => {
     const matchesSearch = anime.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          anime.title_en.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesGenre = selectedGenre === "all" || anime.genres.includes(selectedGenre);
@@ -62,14 +60,34 @@ const Index = () => {
   const allSeasons = ["Зима", "Весна", "Лето", "Осень"];
   const allStudios = Array.from(new Set(animeList.map(anime => anime.studio)));
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 text-white p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-center items-center h-[60vh]">
             <div className="text-center">
               <Loader2 className="h-12 w-12 animate-spin text-purple-500 mx-auto mb-4" />
-              <p>Загрузка...</p>
+              <p>Загрузка списка аниме...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-center items-center h-[60vh]">
+            <div className="text-center">
+              <p className="text-red-500 mb-4">Произошла ошибка при загрузке данных</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
+              >
+                Попробовать снова
+              </button>
             </div>
           </div>
         </div>
