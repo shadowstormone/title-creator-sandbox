@@ -8,6 +8,7 @@ import { useAuthMethods } from "./useAuthMethods";
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, username: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -17,19 +18,25 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { user, session, setSession, setUser } = useAuthStore();
+  const { user, session, loading, initialized, setSession, setInitialized } = useAuthStore();
   const methods = useAuthMethods();
   const mounted = useRef(true);
 
   useEffect(() => {
     const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!mounted.current) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!mounted.current) return;
 
-      if (session?.user) {
-        setSession(session);
-        await methods.loadUserProfile(session.user.id);
+        if (session?.user) {
+          setSession(session);
+          await methods.loadUserProfile(session.user.id);
+        }
+      } finally {
+        if (mounted.current) {
+          setInitialized(true);
+        }
       }
     };
 
@@ -38,12 +45,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted.current) return;
 
+      console.log("Auth state changed:", event);
+
       if (session?.user) {
         setSession(session);
         await methods.loadUserProfile(session.user.id);
       } else {
-        setUser(null);
-        setSession(null);
+        useAuthStore.getState().reset();
       }
     });
 
@@ -53,8 +61,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
+  if (!initialized) {
+    return null;
+  }
+
   return (
-    <AuthContext.Provider value={{ user, session, ...methods }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        session, 
+        loading,
+        ...methods 
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

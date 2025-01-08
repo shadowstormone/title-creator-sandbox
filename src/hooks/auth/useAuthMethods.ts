@@ -3,10 +3,11 @@ import { User } from '@/lib/types';
 import { useAuthStore } from './useAuthStore';
 
 export const useAuthMethods = () => {
-  const { setUser } = useAuthStore();
+  const { setUser, setLoading, reset } = useAuthStore();
 
   const loadUserProfile = async (userId: string) => {
     try {
+      setLoading(true);
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -15,29 +16,33 @@ export const useAuthMethods = () => {
 
       if (error) {
         console.error("Error loading profile:", error);
-        setUser(null);
+        reset();
         return;
       }
 
       if (profile) {
-        setUser({
+        const user: User = {
           id: userId,
           username: profile.username || "User",
           email: profile.email || "",
           role: profile.role || "user",
           createdAt: new Date(profile.created_at),
-        });
+        };
+        setUser(user);
       } else {
-        setUser(null);
+        reset();
       }
     } catch (error) {
       console.error("Error loading user profile:", error);
-      setUser(null);
+      reset();
+    } finally {
+      setLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
@@ -54,40 +59,43 @@ export const useAuthMethods = () => {
           throw new Error("Ошибка входа. Попробуйте позже");
         }
       }
-    } catch (error: any) {
-      console.error("Login error:", error);
-      throw error;
+
+      if (data.user) {
+        await loadUserProfile(data.user.id);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const register = async (email: string, password: string, username: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signUp({
         email: email.toLowerCase().trim(),
         password,
         options: {
-          data: {
-            username,
-            role: "user",
-          },
+          data: { username, role: "user" },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       
       if (error) throw error;
-    } catch (error: any) {
-      console.error("Registration error:", error);
-      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const logout = async () => {
     try {
+      setLoading(true);
       await supabase.auth.signOut();
-      setUser(null);
+      reset();
     } catch (error) {
       console.error("Logout error:", error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -96,6 +104,7 @@ export const useAuthMethods = () => {
     if (!currentUser) return;
     
     try {
+      setLoading(true);
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -108,9 +117,8 @@ export const useAuthMethods = () => {
 
       const updatedUser = { ...currentUser, ...data };
       setUser(updatedUser);
-    } catch (error) {
-      console.error("Profile update error:", error);
-      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 

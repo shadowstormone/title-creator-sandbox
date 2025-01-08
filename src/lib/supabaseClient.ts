@@ -13,7 +13,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storageKey: 'supabase.auth.token',
+    storage: window.localStorage
   },
   global: {
     headers: {
@@ -22,10 +24,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Add health check function
 export const checkSupabaseConnection = async () => {
   try {
-    const { data, error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('count', { count: 'exact', head: true });
+      
     if (error) {
       console.error('Supabase connection error:', error);
       return false;
