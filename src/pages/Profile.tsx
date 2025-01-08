@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
 import AccountManagement from "@/components/profile/AccountManagement";
+import { AuthProvider } from "@/hooks/auth/AuthProvider";
+import { useAuth } from "@/hooks/auth/AuthProvider";
 
-const Profile = () => {
+// Create a wrapper component to use the auth hook
+const ProfileContent = () => {
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -96,6 +98,15 @@ const Profile = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Wrap the ProfileContent with AuthProvider
+const Profile = () => {
+  return (
+    <AuthProvider>
+      <ProfileContent />
+    </AuthProvider>
   );
 };
 
