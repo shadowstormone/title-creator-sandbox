@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { User } from '@/lib/types';
 import { Session } from '@supabase/supabase-js';
 
-interface AuthStore {
+interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
@@ -11,7 +11,7 @@ interface AuthStore {
   setLoading: (loading: boolean) => void;
 }
 
-export const useAuthStore = create<AuthStore>((set) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   session: null,
   loading: true,
