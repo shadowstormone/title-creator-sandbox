@@ -9,4 +9,30 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'lovable',
+    },
+  },
+});
+
+// Add health check function
+export const checkSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+    if (error) {
+      console.error('Supabase connection error:', error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Supabase health check failed:', error);
+    return false;
+  }
+};
