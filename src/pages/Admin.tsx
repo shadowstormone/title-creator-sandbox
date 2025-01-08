@@ -11,8 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { Anime } from "@/lib/types";
 
-// Create a wrapper component to use the auth hook
-const AdminContent = () => {
+const Admin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -177,15 +176,6 @@ const AdminContent = () => {
         </Card>
       </div>
     </div>
-  );
-};
-
-// Wrap the AdminContent with AuthProvider
-const Admin = () => {
-  return (
-    <AuthProvider>
-      <AdminContent />
-    </AuthProvider>
   );
 };
 
