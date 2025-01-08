@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/auth/AuthProvider";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";

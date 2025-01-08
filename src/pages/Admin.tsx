@@ -8,8 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import AnimeForm from "@/components/admin/AnimeForm";
 import UserManagement from "@/components/admin/UserManagement";
 import { supabase } from "@/lib/supabaseClient";
-import { AuthProvider } from "@/hooks/auth/AuthProvider";
-import { useAuth } from "@/hooks/auth/AuthProvider";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { Anime } from "@/lib/types";
 
 // Create a wrapper component to use the auth hook

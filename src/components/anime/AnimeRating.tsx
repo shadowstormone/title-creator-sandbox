@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
-import { useAuth } from "@/hooks/auth/AuthProvider";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { Rating } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
 
