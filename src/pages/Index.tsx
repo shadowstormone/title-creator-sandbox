@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { Anime } from "@/lib/types";
@@ -17,31 +17,41 @@ const Index = () => {
 
   const fetchAnimeList = async () => {
     console.log("Fetching anime list...");
-    const { data, error } = await supabase
-      .from('animes')
-      .select('*');
+    try {
+      const { data, error } = await supabase
+        .from('animes')
+        .select('*');
 
-    if (error) {
-      console.error('Supabase error:', error);
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log("Received data:", data);
+      return data || [];
+    } catch (error) {
+      console.error('Error in fetchAnimeList:', error);
       throw error;
     }
-
-    console.log("Received data:", data);
-    return data || [];
   };
 
   const { data: animeList = [], isLoading, error } = useQuery({
     queryKey: ['animes'],
     queryFn: fetchAnimeList,
     retry: 1,
-    onError: (error) => {
-      console.error('Error fetching anime:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить список аниме. Пожалуйста, попробуйте позже.",
-        variant: "destructive",
-      });
+    meta: {
+      errorMessage: "Не удалось загрузить список аниме. Пожалуйста, попробуйте позже."
     },
+    onSettled: (data, error) => {
+      if (error) {
+        console.error('Query error:', error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить список аниме. Пожалуйста, попробуйте позже.",
+          variant: "destructive",
+        });
+      }
+    }
   });
 
   const filteredAnime = animeList.filter((anime: Anime) => {
