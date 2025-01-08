@@ -8,10 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import AnimeForm from "@/components/admin/AnimeForm";
 import UserManagement from "@/components/admin/UserManagement";
 import { supabase } from "@/lib/supabaseClient";
+import { AuthProvider } from "@/hooks/auth/AuthProvider";
 import { useAuth } from "@/hooks/auth/AuthProvider";
 import { Anime } from "@/lib/types";
 
-const Admin = () => {
+// Create a wrapper component to use the auth hook
+const AdminContent = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -176,6 +178,15 @@ const Admin = () => {
         </Card>
       </div>
     </div>
+  );
+};
+
+// Wrap the AdminContent with AuthProvider
+const Admin = () => {
+  return (
+    <AuthProvider>
+      <AdminContent />
+    </AuthProvider>
   );
 };
 
