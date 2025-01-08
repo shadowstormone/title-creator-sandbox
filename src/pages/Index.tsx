@@ -39,18 +39,18 @@ const Index = () => {
     queryKey: ['animes'],
     queryFn: fetchAnimeList,
     retry: 1,
-    meta: {
-      errorMessage: "Не удалось загрузить список аниме. Пожалуйста, попробуйте позже."
+    gcTime: 1000 * 60 * 60, // 1 hour
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    onSuccess: (data) => {
+      console.log('Successfully fetched anime list:', data);
     },
-    onSettled: (data, error) => {
-      if (error) {
-        console.error('Query error:', error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить список аниме. Пожалуйста, попробуйте позже.",
-          variant: "destructive",
-        });
-      }
+    onError: (error) => {
+      console.error('Query error:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить список аниме. Пожалуйста, попробуйте позже.",
+        variant: "destructive",
+      });
     }
   });
 
