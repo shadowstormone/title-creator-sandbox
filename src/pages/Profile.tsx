@@ -4,49 +4,61 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
 import AccountManagement from "@/components/profile/AccountManagement";
-import { AuthProvider } from "@/hooks/auth/AuthProvider";
-import { useAuth } from "@/hooks/auth/AuthProvider";
+import { useAuth } from "@/hooks/auth/useAuth";
 
-// Create a wrapper component to use the auth hook
-const ProfileContent = () => {
+const Profile = () => {
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [username, setUsername] = useState(user?.username || "");
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      // В реальном приложении здесь должна быть загрузка файла на сервер
-      const imageUrl = URL.createObjectURL(file);
-      updateProfile({ avatarUrl: imageUrl });
+    if (e.target.files && e.target.files[0]) {
+      setAvatarFile(e.target.files[0]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      await updateProfile({ username });
+      
+      toast({
+        title: "Профиль обновлен",
+        description: "Изменения успешно сохранены",
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить профиль",
+        variant: "destructive",
+      });
     }
   };
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-6">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-2xl font-bold">Необходимо войти в аккаунт</h2>
-        </div>
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <p className="text-white">Пожалуйста, войдите в систему</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-2xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6">Профиль пользователя</h2>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg p-6">
+        <h1 className="text-2xl font-bold text-white mb-6">Профиль пользователя</h1>
         
-        <div className="bg-gray-800 rounded-lg p-6 space-y-6">
+        <div className="mb-6">
           <div className="flex items-center space-x-4">
             <Avatar className="h-20 w-20">
               <AvatarImage src={user.avatarUrl} />
-              <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+              <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
-            
             <div>
-              <Input
+              <input
                 type="file"
                 accept="image/*"
                 onChange={handleAvatarChange}
@@ -56,57 +68,48 @@ const ProfileContent = () => {
               <Button
                 variant="outline"
                 onClick={() => document.getElementById("avatar-upload")?.click()}
+                className="bg-gray-700 hover:bg-gray-600"
               >
                 Изменить аватар
               </Button>
             </div>
           </div>
+        </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300">
-                Имя пользователя
-              </label>
-              <div className="mt-1 text-lg">{user.username}</div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300">
-                Email
-              </label>
-              <div className="mt-1 text-lg">{user.email}</div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300">
-                Роль
-              </label>
-              <div className="mt-1 text-lg capitalize">{user.role}</div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300">
-                Дата регистрации
-              </label>
-              <div className="mt-1 text-lg">
-                {new Date(user.createdAt).toLocaleDateString()}
-              </div>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">
+              Имя пользователя
+            </label>
+            <Input
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="bg-gray-700 border-gray-600 text-white"
+            />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Email
+            </label>
+            <Input
+              value={user.email}
+              disabled
+              className="bg-gray-700 border-gray-600 text-white opacity-60"
+            />
+          </div>
+
+          <Button type="submit" className="w-full">
+            Сохранить изменения
+          </Button>
+        </form>
+
+        <div className="mt-8">
           <AccountManagement />
         </div>
       </div>
     </div>
-  );
-};
-
-// Wrap the ProfileContent with AuthProvider
-const Profile = () => {
-  return (
-    <AuthProvider>
-      <ProfileContent />
-    </AuthProvider>
   );
 };
 
