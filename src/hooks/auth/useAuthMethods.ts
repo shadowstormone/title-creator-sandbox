@@ -60,9 +60,12 @@ export const useAuthMethods = () => {
         }
       }
 
-      if (data.user) {
-        await loadUserProfile(data.user.id);
+      if (!data.user) {
+        throw new Error("Ошибка входа. Попробуйте позже");
       }
+    } catch (error) {
+      reset();
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -81,6 +84,10 @@ export const useAuthMethods = () => {
       });
       
       if (error) throw error;
+      
+      if (!data.user) {
+        throw new Error("Ошибка регистрации. Попробуйте позже");
+      }
     } finally {
       setLoading(false);
     }
@@ -90,11 +97,8 @@ export const useAuthMethods = () => {
     try {
       setLoading(true);
       await supabase.auth.signOut();
-      reset();
-    } catch (error) {
-      console.error("Logout error:", error);
-      throw error;
     } finally {
+      reset();
       setLoading(false);
     }
   };
