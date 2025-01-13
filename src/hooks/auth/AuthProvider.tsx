@@ -8,16 +8,22 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const { user, session, loading, initialized } = useAuthStore();
+  const { user, session, loading, initialized, error } = useAuthStore();
   const methods = useAuthMethods();
   useSessionManager();
 
+  // Показываем загрузочный экран только при первичной инициализации
   if (!initialized) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-t-purple-500 border-purple-200 rounded-full animate-spin"></div>
-          <p className="mt-4 text-lg text-gray-400">Загрузка...</p>
+          <p className="mt-4 text-lg text-gray-400">Загрузка приложения...</p>
+          {error && (
+            <p className="mt-2 text-sm text-red-400">
+              Произошла ошибка при загрузке. Пожалуйста, обновите страницу.
+            </p>
+          )}
         </div>
       </div>
     );
