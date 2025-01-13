@@ -1,14 +1,15 @@
 import { supabase } from '@/lib/supabaseClient';
 import { User } from '@/lib/types';
 import { useAuthStore } from './useAuthStore';
+import { useToast } from '@/hooks/use-toast';
 
 export const useAuthMethods = () => {
-  const { setUser, setLoading, reset } = useAuthStore();
+  const { setUser, setLoading, setError, reset } = useAuthStore();
+  const { toast } = useToast();
 
-  const loadUserProfile = async (userId: string) => {
+  const loadUserProfile = async (userId: string): Promise<User | null> => {
     console.log("Loading user profile for ID:", userId);
     try {
-      setLoading(true);
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -17,36 +18,39 @@ export const useAuthMethods = () => {
 
       if (error) {
         console.error("Error loading profile:", error);
-        reset();
-        return;
+        setError(error.message);
+        return null;
       }
 
-      if (profile) {
-        const user: User = {
-          id: userId,
-          username: profile.username || "User",
-          email: profile.email || "",
-          role: profile.role || "user",
-          createdAt: new Date(profile.created_at),
-        };
-        console.log("Setting user profile:", user);
-        setUser(user);
-      } else {
-        console.log("No profile found, resetting state");
-        reset();
+      if (!profile) {
+        console.log("No profile found");
+        return null;
       }
+
+      const user: User = {
+        id: userId,
+        username: profile.username || "User",
+        email: profile.email || "",
+        role: profile.role || "user",
+        createdAt: new Date(profile.created_at),
+      };
+
+      console.log("User profile loaded:", user);
+      setUser(user);
+      return user;
     } catch (error) {
-      console.error("Error loading user profile:", error);
-      reset();
-    } finally {
-      setLoading(false);
+      console.error("Error in loadUserProfile:", error);
+      setError(error instanceof Error ? error.message : "Unknown error");
+      return null;
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<void> => {
     console.log("Attempting login for email:", email);
     try {
       setLoading(true);
+      setError(null);
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
@@ -54,23 +58,30 @@ export const useAuthMethods = () => {
 
       if (error) {
         console.error("Login error:", error);
+        let errorMessage = "Ошибка входа";
+        
         if (error.message.includes("Invalid login credentials")) {
-          throw new Error("Неверный email или пароль");
+          errorMessage = "Неверный email или пароль";
         } else if (error.message.includes("Email not confirmed")) {
-          throw new Error("Email не подтвержден. Проверьте вашу почту");
-        } else if (error.message.includes("Invalid email")) {
-          throw new Error("Некорректный email адрес");
-        } else {
-          throw new Error("Ошибка входа. Попробуйте позже");
+          errorMessage = "Email не подтвержден. Проверьте вашу почту";
         }
+        
+        toast({
+          title: "Ошибка",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        
+        throw new Error(errorMessage);
       }
 
       if (!data.user) {
-        throw new Error("Ошибка входа. Попробуйте позже");
+        throw new Error("Не удалось получить данные пользователя");
       }
-      
+
       console.log("Login successful");
     } catch (error) {
+      setError(error instanceof Error ? error.message : "Unknown error");
       reset();
       throw error;
     } finally {
@@ -78,10 +89,12 @@ export const useAuthMethods = () => {
     }
   };
 
-  const register = async (email: string, password: string, username: string) => {
+  const register = async (email: string, password: string, username: string): Promise<void> => {
     console.log("Attempting registration for email:", email);
     try {
       setLoading(true);
+      setError(null);
+
       const { data, error } = await supabase.auth.signUp({
         email: email.toLowerCase().trim(),
         password,
@@ -90,52 +103,59 @@ export const useAuthMethods = () => {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
-      
-      if (error) throw error;
-      
-      if (!data.user) {
-        throw new Error("Ошибка регистрации. Попробуйте позже");
+
+      if (error) {
+        console.error("Registration error:", error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось зарегистрироваться",
+          variant: "destructive",
+        });
+        throw error;
       }
-      
+
+      if (!data.user) {
+        throw new Error("Не удалось создать пользователя");
+      }
+
+      toast({
+        title: "Успешно",
+        description: "Проверьте вашу почту для подтверждения регистрации",
+      });
+
       console.log("Registration successful");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Unknown error");
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     console.log("Attempting logout");
     try {
       setLoading(true);
-      await supabase.auth.signOut();
+      setError(null);
+
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Logout error:", error);
+        throw error;
+      }
+
+      toast({
+        title: "Успешно",
+        description: "Вы вышли из системы",
+      });
+
       console.log("Logout successful");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Unknown error");
+      throw error;
     } finally {
       reset();
-      setLoading(false);
-    }
-  };
-
-  const updateProfile = async (data: Partial<User>) => {
-    const currentUser = useAuthStore.getState().user;
-    if (!currentUser) return;
-    
-    console.log("Updating profile for user:", currentUser.id);
-    try {
-      setLoading(true);
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          username: data.username,
-          role: data.role,
-        })
-        .eq('id', currentUser.id);
-
-      if (error) throw error;
-
-      const updatedUser = { ...currentUser, ...data };
-      setUser(updatedUser);
-      console.log("Profile updated successfully");
-    } finally {
       setLoading(false);
     }
   };
@@ -145,6 +165,5 @@ export const useAuthMethods = () => {
     login,
     register,
     logout,
-    updateProfile,
   };
 };
