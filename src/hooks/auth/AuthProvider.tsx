@@ -1,17 +1,16 @@
 import { useEffect, useRef } from "react";
-import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuthStore } from "./useAuthStore";
 import { useAuthMethods } from "./useAuthMethods";
 import { AuthContext } from "./AuthContext";
-import { checkIpSession, trackIpSession, updateIpActivity } from "./useIpSession";
 import { useToast } from "@/hooks/use-toast";
+import { checkIpSession, trackIpSession, updateIpActivity } from "./useIpSession";
 
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-const IP_CHECK_INTERVAL = 1000 * 60; // Check every minute
+const IP_CHECK_INTERVAL = 1000 * 60;
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { user, session, loading, initialized, setSession, setLoading, setInitialized } = useAuthStore();
@@ -27,18 +26,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       try {
         console.log("Starting auth initialization...");
-        setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          throw sessionError;
+        }
+
         if (!mounted.current) return;
 
-        console.log("Session status:", session ? "Found" : "Not found");
-        
         if (session?.user) {
+          console.log("Active session found for user:", session.user.id);
           setSession(session);
           await methods.loadUserProfile(session.user.id);
           await trackIpSession(session.user.id);
-          console.log("User profile loaded successfully");
         } else {
           console.log("No active session found");
           useAuthStore.getState().reset();
@@ -89,7 +90,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, []);
 
-  // IP session check interval
   useEffect(() => {
     if (!user) return;
 
