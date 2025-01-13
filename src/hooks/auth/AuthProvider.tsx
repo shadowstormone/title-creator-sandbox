@@ -18,20 +18,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const methods = useAuthMethods();
   const mounted = useRef(true);
   const { toast } = useToast();
+  const initializationAttempted = useRef(false);
 
   useEffect(() => {
     const initAuth = async () => {
+      if (initializationAttempted.current) return;
+      initializationAttempted.current = true;
+
       try {
+        console.log("Starting auth initialization...");
         setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!mounted.current) return;
 
+        console.log("Session status:", session ? "Found" : "Not found");
+        
         if (session?.user) {
           setSession(session);
           await methods.loadUserProfile(session.user.id);
           await trackIpSession(session.user.id);
+          console.log("User profile loaded successfully");
         } else {
+          console.log("No active session found");
           useAuthStore.getState().reset();
         }
       } catch (error) {
@@ -41,6 +50,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (mounted.current) {
           setLoading(false);
           setInitialized(true);
+          console.log("Auth initialization completed");
         }
       }
     };
@@ -58,7 +68,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setSession(session);
           await methods.loadUserProfile(session.user.id);
           await trackIpSession(session.user.id);
+          console.log("Profile updated after auth state change");
         } else {
+          console.log("Resetting auth state");
           useAuthStore.getState().reset();
         }
       } catch (error) {
@@ -107,7 +119,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-t-purple-500 border-purple-200 rounded-full animate-spin"></div>
           <p className="mt-4 text-lg text-gray-400">Загрузка...</p>
         </div>
       </div>

@@ -6,6 +6,7 @@ export const useAuthMethods = () => {
   const { setUser, setLoading, reset } = useAuthStore();
 
   const loadUserProfile = async (userId: string) => {
+    console.log("Loading user profile for ID:", userId);
     try {
       setLoading(true);
       const { data: profile, error } = await supabase
@@ -28,8 +29,10 @@ export const useAuthMethods = () => {
           role: profile.role || "user",
           createdAt: new Date(profile.created_at),
         };
+        console.log("Setting user profile:", user);
         setUser(user);
       } else {
+        console.log("No profile found, resetting state");
         reset();
       }
     } catch (error) {
@@ -41,6 +44,7 @@ export const useAuthMethods = () => {
   };
 
   const login = async (email: string, password: string) => {
+    console.log("Attempting login for email:", email);
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -49,6 +53,7 @@ export const useAuthMethods = () => {
       });
 
       if (error) {
+        console.error("Login error:", error);
         if (error.message.includes("Invalid login credentials")) {
           throw new Error("Неверный email или пароль");
         } else if (error.message.includes("Email not confirmed")) {
@@ -63,6 +68,8 @@ export const useAuthMethods = () => {
       if (!data.user) {
         throw new Error("Ошибка входа. Попробуйте позже");
       }
+      
+      console.log("Login successful");
     } catch (error) {
       reset();
       throw error;
@@ -72,6 +79,7 @@ export const useAuthMethods = () => {
   };
 
   const register = async (email: string, password: string, username: string) => {
+    console.log("Attempting registration for email:", email);
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signUp({
@@ -88,15 +96,19 @@ export const useAuthMethods = () => {
       if (!data.user) {
         throw new Error("Ошибка регистрации. Попробуйте позже");
       }
+      
+      console.log("Registration successful");
     } finally {
       setLoading(false);
     }
   };
 
   const logout = async () => {
+    console.log("Attempting logout");
     try {
       setLoading(true);
       await supabase.auth.signOut();
+      console.log("Logout successful");
     } finally {
       reset();
       setLoading(false);
@@ -107,6 +119,7 @@ export const useAuthMethods = () => {
     const currentUser = useAuthStore.getState().user;
     if (!currentUser) return;
     
+    console.log("Updating profile for user:", currentUser.id);
     try {
       setLoading(true);
       const { error } = await supabase
@@ -121,6 +134,7 @@ export const useAuthMethods = () => {
 
       const updatedUser = { ...currentUser, ...data };
       setUser(updatedUser);
+      console.log("Profile updated successfully");
     } finally {
       setLoading(false);
     }

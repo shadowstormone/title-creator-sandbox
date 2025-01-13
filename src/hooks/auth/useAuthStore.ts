@@ -26,7 +26,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   reset: () => set({ 
     user: null, 
     session: null, 
-    loading: false, 
-    initialized: true 
+    loading: false,
+    initialized: true
   }),
 }));
