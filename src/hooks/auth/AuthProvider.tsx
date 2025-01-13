@@ -2,6 +2,7 @@ import { useAuthStore } from "./useAuthStore";
 import { useAuthMethods } from "./useAuthMethods";
 import { AuthContext } from "./AuthContext";
 import { useSessionManager } from "./useSessionManager";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -10,19 +11,39 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { user, session, loading, initialized, error } = useAuthStore();
   const methods = useAuthMethods();
+  const { toast } = useToast();
   useSessionManager();
 
   // Показываем загрузочный экран только при первичной инициализации
   if (!initialized) {
+    // Если загрузка длится более 5 секунд, показываем сообщение об ошибке
+    setTimeout(() => {
+      if (!initialized && !error) {
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось инициализировать приложение. Пожалуйста, обновите страницу.",
+          variant: "destructive",
+        });
+      }
+    }, 5000);
+
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-t-purple-500 border-purple-200 rounded-full animate-spin"></div>
           <p className="mt-4 text-lg text-gray-400">Загрузка приложения...</p>
           {error && (
-            <p className="mt-2 text-sm text-red-400">
-              Произошла ошибка при загрузке. Пожалуйста, обновите страницу.
-            </p>
+            <div className="mt-4">
+              <p className="text-sm text-red-400">
+                Произошла ошибка при загрузке
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 px-4 py-2 text-sm text-white bg-purple-500 rounded hover:bg-purple-600 transition-colors"
+              >
+                Обновить страницу
+              </button>
+            </div>
           )}
         </div>
       </div>

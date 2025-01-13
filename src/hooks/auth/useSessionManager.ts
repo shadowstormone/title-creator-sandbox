@@ -12,10 +12,19 @@ export const useSessionManager = () => {
   useEffect(() => {
     let mounted = true;
     let initializationAttempted = false;
+    let initializationTimeout: NodeJS.Timeout;
 
     const initAuth = async () => {
       if (initializationAttempted || !mounted) return;
       initializationAttempted = true;
+
+      // Устанавливаем таймаут для инициализации
+      initializationTimeout = setTimeout(() => {
+        if (!mounted) return;
+        setError("Превышено время ожидания инициализации");
+        setInitialized(true);
+        setLoading(false);
+      }, 10000); // 10 секунд максимум на инициализацию
 
       try {
         console.log("Начало инициализации аутентификации...");
@@ -39,6 +48,13 @@ export const useSessionManager = () => {
           console.log("Активная сессия не найдена");
           reset();
         }
+
+        clearTimeout(initializationTimeout);
+        if (mounted) {
+          setInitialized(true);
+          setLoading(false);
+          setError(null);
+        }
       } catch (error) {
         console.error("Ошибка инициализации аутентификации:", error);
         if (mounted) {
@@ -48,12 +64,8 @@ export const useSessionManager = () => {
             description: "Не удалось загрузить данные пользователя. Попробуйте обновить страницу.",
             variant: "destructive",
           });
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
           setInitialized(true);
-          console.log("Инициализация аутентификации завершена");
+          setLoading(false);
         }
       }
     };
@@ -72,9 +84,7 @@ export const useSessionManager = () => {
         if (session?.user) {
           setSession(session);
           await methods.loadUserProfile(session.user.id);
-          console.log("Профиль обновлен после изменения состояния аутентификации");
         } else {
-          console.log("Сброс состояния аутентификации");
           reset();
         }
       } catch (error) {
@@ -96,6 +106,7 @@ export const useSessionManager = () => {
 
     return () => {
       mounted = false;
+      clearTimeout(initializationTimeout);
       subscription.unsubscribe();
     };
   }, []);
