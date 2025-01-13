@@ -160,10 +160,62 @@ export const useAuthMethods = () => {
     }
   };
 
+  const updateProfile = async (data: Partial<User>): Promise<void> => {
+    console.log("Attempting to update profile with data:", data);
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data: currentSession } = await supabase.auth.getSession();
+      if (!currentSession.session?.user.id) {
+        throw new Error("Пользователь не авторизован");
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          username: data.username,
+          role: data.role,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentSession.session.user.id);
+
+      if (error) {
+        console.error("Profile update error:", error);
+        throw error;
+      }
+
+      // Reload user profile to get updated data
+      const updatedProfile = await loadUserProfile(currentSession.session.user.id);
+      if (!updatedProfile) {
+        throw new Error("Не удалось обновить профиль");
+      }
+
+      toast({
+        title: "Успешно",
+        description: "Профиль успешно обновлен",
+      });
+
+      console.log("Profile updated successfully");
+    } catch (error) {
+      console.error("Error in updateProfile:", error);
+      const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
+      toast({
+        title: "Ошибка",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loadUserProfile,
     login,
     register,
     logout,
+    updateProfile,
   };
 };
