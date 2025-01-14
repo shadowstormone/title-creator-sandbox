@@ -15,8 +15,8 @@ export const useSessionManager = () => {
     let initializationTimeout: NodeJS.Timeout;
     let retryCount = 0;
     const MAX_RETRIES = 3;
-    const RETRY_DELAY = 2000;
-    const INITIALIZATION_TIMEOUT = 10000;
+    const RETRY_DELAY = 3000; // Увеличили задержку между попытками
+    const INITIALIZATION_TIMEOUT = 15000; // Увеличили общий таймаут
 
     const initAuth = async () => {
       if (initializationAttempted || !mounted) return;
@@ -46,7 +46,7 @@ export const useSessionManager = () => {
             setTimeout(initAuth, RETRY_DELAY);
             return;
           }
-          throw new Error("Не удалось подключиться к серверу");
+          throw new Error("Не удалось подключиться к серверу после нескольких попыток");
         }
 
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -74,7 +74,7 @@ export const useSessionManager = () => {
           setError(error instanceof Error ? error.message : "Неизвестная ошибка");
           toast({
             title: "Ошибка подключения",
-            description: "Не удалось подключиться к серверу. Проверьте подключение к интернету.",
+            description: "Не удалось подключиться к серверу. Проверьте подключение к интернету и попробуйте позже.",
             variant: "destructive",
           });
           setInitialized(true);
