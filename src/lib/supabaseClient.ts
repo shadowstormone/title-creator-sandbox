@@ -29,11 +29,12 @@ export const checkSupabaseConnection = async () => {
     console.log("Проверка подключения к Supabase...");
     const start = Date.now();
     
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id')
-      .limit(1)
-      .maybeSingle();
+    const { data, error } = await Promise.race([
+      supabase.from('profiles').select('id').limit(1).maybeSingle(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 5000)
+      )
+    ]);
       
     const duration = Date.now() - start;
     console.log(`Время ответа Supabase: ${duration}ms`);

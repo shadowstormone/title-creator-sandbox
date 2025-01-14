@@ -15,25 +15,29 @@ export const useSessionManager = () => {
     let initializationTimeout: NodeJS.Timeout;
     let retryCount = 0;
     const MAX_RETRIES = 3;
-    const RETRY_DELAY = 2000; // 2 seconds
+    const RETRY_DELAY = 2000;
+    const INITIALIZATION_TIMEOUT = 10000;
 
     const initAuth = async () => {
       if (initializationAttempted || !mounted) return;
       initializationAttempted = true;
 
-      // Устанавливаем таймаут для инициализации
       initializationTimeout = setTimeout(() => {
         if (!mounted) return;
         setError("Превышено время ожидания при загрузке");
         setInitialized(true);
         setLoading(false);
-      }, 10000);
+        toast({
+          title: "Ошибка подключения",
+          description: "Не удалось подключиться к серверу. Пожалуйста, проверьте подключение к интернету и обновите страницу.",
+          variant: "destructive",
+        });
+      }, INITIALIZATION_TIMEOUT);
 
       try {
         console.log("Начало инициализации аутентификации...");
         setLoading(true);
 
-        // Проверяем подключение к Supabase
         const isConnected = await checkSupabaseConnection();
         if (!isConnected) {
           if (retryCount < MAX_RETRIES) {
@@ -79,10 +83,8 @@ export const useSessionManager = () => {
       }
     };
 
-    // Запускаем инициализацию
     initAuth();
 
-    // Подписываемся на изменения состояния аутентификации
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
