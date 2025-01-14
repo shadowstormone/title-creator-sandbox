@@ -20,8 +20,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setTimeout(() => {
       if (!initialized && !error) {
         toast({
-          title: "Ошибка загрузки",
-          description: "Не удалось инициализировать приложение. Пожалуйста, обновите страницу.",
+          title: "Не удалось загрузить сайт",
+          description: "Возможны проблемы с подключением к серверу. Пожалуйста, проверьте интернет-соединение и обновите страницу.",
           variant: "destructive",
         });
       }
@@ -31,11 +31,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-t-purple-500 border-purple-200 rounded-full animate-spin"></div>
-          <p className="mt-4 text-lg text-gray-400">Загрузка приложения...</p>
+          <p className="mt-4 text-lg text-gray-400">Загрузка сайта...</p>
           {error && (
             <div className="mt-4">
               <p className="text-sm text-red-400">
-                Произошла ошибка при загрузке
+                Не удалось загрузить сайт. Проверьте подключение к интернету
               </p>
               <button
                 onClick={() => window.location.reload()}

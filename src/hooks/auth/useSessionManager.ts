@@ -21,16 +21,15 @@ export const useSessionManager = () => {
       // Устанавливаем таймаут для инициализации
       initializationTimeout = setTimeout(() => {
         if (!mounted) return;
-        setError("Превышено время ожидания инициализации");
+        setError("Не удалось загрузить сайт из-за медленного соединения");
         setInitialized(true);
         setLoading(false);
       }, 10000); // 10 секунд максимум на инициализацию
 
       try {
-        console.log("Начало инициализации аутентификации...");
+        console.log("Начало загрузки сайта...");
         setLoading(true);
 
-        // Проверяем соединение с Supabase
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
@@ -56,12 +55,12 @@ export const useSessionManager = () => {
           setError(null);
         }
       } catch (error) {
-        console.error("Ошибка инициализации аутентификации:", error);
+        console.error("Ошибка загрузки сайта:", error);
         if (mounted) {
           setError(error instanceof Error ? error.message : "Неизвестная ошибка");
           toast({
-            title: "Ошибка",
-            description: "Не удалось загрузить данные пользователя. Попробуйте обновить страницу.",
+            title: "Ошибка загрузки",
+            description: "Не удалось загрузить сайт. Проверьте подключение к интернету и попробуйте обновить страницу.",
             variant: "destructive",
           });
           setInitialized(true);
@@ -93,7 +92,7 @@ export const useSessionManager = () => {
           setError(error instanceof Error ? error.message : "Неизвестная ошибка");
           toast({
             title: "Ошибка",
-            description: "Произошла ошибка при обновлении сессии",
+            description: "Произошла ошибка при обновлении данных. Попробуйте обновить страницу.",
             variant: "destructive",
           });
         }
