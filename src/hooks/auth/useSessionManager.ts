@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, checkSupabaseConnection } from '@/lib/supabaseClient';
 import { useAuthStore } from './useAuthStore';
 import { useAuthMethods } from './useAuthMethods';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +13,8 @@ export const useSessionManager = () => {
     let mounted = true;
     let initializationAttempted = false;
     let initializationTimeout: NodeJS.Timeout;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
 
     const initAuth = async () => {
       if (initializationAttempted || !mounted) return;
@@ -29,6 +31,18 @@ export const useSessionManager = () => {
       try {
         console.log("Начало загрузки сайта...");
         setLoading(true);
+
+        // Проверяем подключение к Supabase
+        const isConnected = await checkSupabaseConnection();
+        if (!isConnected) {
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`Повторная попытка подключения (${retryCount}/${MAX_RETRIES})...`);
+            setTimeout(initAuth, 2000); // Пробуем снова через 2 секунды
+            return;
+          }
+          throw new Error("Не удалось подключиться к серверу");
+        }
 
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -60,7 +74,7 @@ export const useSessionManager = () => {
           setError(error instanceof Error ? error.message : "Неизвестная ошибка");
           toast({
             title: "Ошибка загрузки",
-            description: "Не удалось загрузить сайт. Проверьте подключение к интернету и попробуйте обновить страницу.",
+            description: "Не удалось подключиться к серверу. Проверьте подключение к интернету и попробуйте обновить страницу.",
             variant: "destructive",
           });
           setInitialized(true);

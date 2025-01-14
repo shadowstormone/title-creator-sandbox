@@ -26,17 +26,21 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 export const checkSupabaseConnection = async () => {
   try {
+    console.log("Проверка подключения к Supabase...");
     const { data, error } = await supabase
       .from('profiles')
-      .select('count', { count: 'exact', head: true });
+      .select('count', { count: 'exact', head: true })
+      .limit(1)
+      .maybeSingle();
       
     if (error) {
-      console.error('Supabase connection error:', error);
+      console.error('Ошибка подключения к Supabase:', error);
       return false;
     }
+    console.log("Подключение к Supabase успешно");
     return true;
   } catch (error) {
-    console.error('Supabase health check failed:', error);
+    console.error('Ошибка при проверке подключения к Supabase:', error);
     return false;
   }
 };
