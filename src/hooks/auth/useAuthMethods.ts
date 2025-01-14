@@ -4,7 +4,7 @@ import { useAuthStore } from './useAuthStore';
 import { useToast } from '@/hooks/use-toast';
 
 export const useAuthMethods = () => {
-  const { setUser, setLoading, setError, reset } = useAuthStore();
+  const { setUser, setLoading, setError, reset, setInitialized } = useAuthStore();
   const { toast } = useToast();
 
   const loadUserProfile = async (userId: string): Promise<User | null> => {
@@ -18,8 +18,7 @@ export const useAuthMethods = () => {
 
       if (error) {
         console.error("Error loading profile:", error);
-        setError(error.message);
-        return null;
+        throw error;
       }
 
       if (!profile) {
@@ -79,6 +78,8 @@ export const useAuthMethods = () => {
         throw new Error("Не удалось получить данные пользователя");
       }
 
+      await loadUserProfile(data.user.id);
+      setInitialized(true);
       console.log("Login successful");
     } catch (error) {
       setError(error instanceof Error ? error.message : "Unknown error");

@@ -15,6 +15,7 @@ export const useSessionManager = () => {
     let initializationTimeout: NodeJS.Timeout;
     let retryCount = 0;
     const MAX_RETRIES = 3;
+    const RETRY_DELAY = 2000; // 2 seconds
 
     const initAuth = async () => {
       if (initializationAttempted || !mounted) return;
@@ -23,13 +24,13 @@ export const useSessionManager = () => {
       // Устанавливаем таймаут для инициализации
       initializationTimeout = setTimeout(() => {
         if (!mounted) return;
-        setError("Не удалось загрузить сайт из-за медленного соединения");
+        setError("Превышено время ожидания при загрузке");
         setInitialized(true);
         setLoading(false);
-      }, 10000); // 10 секунд максимум на инициализацию
+      }, 10000);
 
       try {
-        console.log("Начало загрузки сайта...");
+        console.log("Начало инициализации аутентификации...");
         setLoading(true);
 
         // Проверяем подключение к Supabase
@@ -38,23 +39,18 @@ export const useSessionManager = () => {
           if (retryCount < MAX_RETRIES) {
             retryCount++;
             console.log(`Повторная попытка подключения (${retryCount}/${MAX_RETRIES})...`);
-            setTimeout(initAuth, 2000); // Пробуем снова через 2 секунды
+            setTimeout(initAuth, RETRY_DELAY);
             return;
           }
           throw new Error("Не удалось подключиться к серверу");
         }
 
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error("Ошибка сессии:", sessionError);
-          throw sessionError;
-        }
-
-        if (!mounted) return;
+        
+        if (sessionError) throw sessionError;
 
         if (session?.user) {
-          console.log("Найдена активная сессия для пользователя:", session.user.id);
+          console.log("Найдена активная сессия");
           setSession(session);
           await methods.loadUserProfile(session.user.id);
         } else {
@@ -69,12 +65,12 @@ export const useSessionManager = () => {
           setError(null);
         }
       } catch (error) {
-        console.error("Ошибка загрузки сайта:", error);
+        console.error("Ошибка инициализации:", error);
         if (mounted) {
           setError(error instanceof Error ? error.message : "Неизвестная ошибка");
           toast({
-            title: "Ошибка загрузки",
-            description: "Не удалось подключиться к серверу. Проверьте подключение к интернету и попробуйте обновить страницу.",
+            title: "Ошибка подключения",
+            description: "Не удалось подключиться к серверу. Проверьте подключение к интернету.",
             variant: "destructive",
           });
           setInitialized(true);
@@ -101,18 +97,12 @@ export const useSessionManager = () => {
           reset();
         }
       } catch (error) {
-        console.error("Ошибка при изменении состояния аутентификации:", error);
-        if (mounted) {
-          setError(error instanceof Error ? error.message : "Неизвестная ошибка");
-          toast({
-            title: "Ошибка",
-            description: "Произошла ошибка при обновлении данных. Попробуйте обновить страницу.",
-            variant: "destructive",
-          });
-        }
+        console.error("Ошибка при изменении состояния:", error);
+        setError(error instanceof Error ? error.message : "Неизвестная ошибка");
       } finally {
         if (mounted) {
           setLoading(false);
+          setInitialized(true);
         }
       }
     });
