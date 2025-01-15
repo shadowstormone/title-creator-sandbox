@@ -22,6 +22,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       'X-Client-Info': 'lovable',
     },
   },
+  db: {
+    schema: 'public'
+  },
 });
 
 type QueryResult = {
@@ -34,26 +37,33 @@ export const checkSupabaseConnection = async () => {
     console.log("Проверка подключения к Supabase...");
     const start = Date.now();
     
+    // Увеличиваем таймаут до 10 секунд
     const result = await Promise.race([
-      supabase.from('profiles').select('id').limit(1).maybeSingle(),
+      supabase.from('ip_sessions').select('count').single(),
       new Promise<QueryResult>((_, reject) => 
         setTimeout(() => reject(new Error('Timeout')), 10000)
       )
     ]) as QueryResult;
 
-    const { error } = result;
-      
     const duration = Date.now() - start;
     console.log(`Время ответа Supabase: ${duration}ms`);
 
-    if (error) {
-      console.error('Ошибка подключения к Supabase:', error);
+    if (result.error) {
+      console.error('Ошибка подключения к Supabase:', result.error);
       return false;
     }
     
     return true;
   } catch (error) {
-    console.error('Ошибка при проверке подключения к Supabase:', error);
+    if (error instanceof Error) {
+      console.error('Ошибка при проверке подключения к Supabase:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    } else {
+      console.error('Неизвестная ошибка при проверке подключения к Supabase:', error);
+    }
     return false;
   }
 };
