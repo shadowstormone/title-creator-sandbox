@@ -24,20 +24,20 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+type QueryResult = {
+  data: any;
+  error: any;
+};
+
 export const checkSupabaseConnection = async () => {
   try {
     console.log("Проверка подключения к Supabase...");
     const start = Date.now();
     
-    type QueryResult = {
-      data: any;
-      error: any;
-    }
-
     const result = await Promise.race([
       supabase.from('profiles').select('id').limit(1).maybeSingle(),
       new Promise<QueryResult>((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 10000) // Увеличили таймаут до 10 секунд
+        setTimeout(() => reject(new Error('Timeout')), 10000)
       )
     ]) as QueryResult;
 
@@ -51,7 +51,6 @@ export const checkSupabaseConnection = async () => {
       return false;
     }
     
-    console.log("Подключение к Supabase успешно");
     return true;
   } catch (error) {
     console.error('Ошибка при проверке подключения к Supabase:', error);

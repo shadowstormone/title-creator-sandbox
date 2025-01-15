@@ -15,28 +15,35 @@ export const useSessionManager = () => {
     let initializationTimeout: NodeJS.Timeout;
     let retryCount = 0;
     const MAX_RETRIES = 3;
-    const RETRY_DELAY = 3000; // Увеличили задержку между попытками
-    const INITIALIZATION_TIMEOUT = 15000; // Увеличили общий таймаут
+    const RETRY_DELAY = 3000;
+    const INITIALIZATION_TIMEOUT = 15000;
 
     const initAuth = async () => {
       if (initializationAttempted || !mounted) return;
       initializationAttempted = true;
 
-      initializationTimeout = setTimeout(() => {
-        if (!mounted) return;
-        setError("Превышено время ожидания при загрузке");
-        setInitialized(true);
-        setLoading(false);
-        toast({
-          title: "Ошибка подключения",
-          description: "Не удалось подключиться к серверу. Пожалуйста, проверьте подключение к интернету и обновите страницу.",
-          variant: "destructive",
-        });
-      }, INITIALIZATION_TIMEOUT);
-
       try {
         console.log("Начало инициализации аутентификации...");
         setLoading(true);
+
+        // Очистка существующей сессии если инициализация занимает слишком много времени
+        initializationTimeout = setTimeout(() => {
+          if (!mounted) return;
+          console.log("Превышено время ожидания, сброс сессии...");
+          supabase.auth.signOut().then(() => {
+            if (mounted) {
+              setError("Превышено время ожидания при загрузке");
+              setInitialized(true);
+              setLoading(false);
+              localStorage.removeItem('supabase.auth.token');
+              toast({
+                title: "Ошибка подключения",
+                description: "Не удалось подключиться к серверу. Пожалуйста, войдите снова.",
+                variant: "destructive",
+              });
+            }
+          });
+        }, INITIALIZATION_TIMEOUT);
 
         const isConnected = await checkSupabaseConnection();
         if (!isConnected) {
@@ -51,7 +58,10 @@ export const useSessionManager = () => {
 
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (sessionError) throw sessionError;
+        if (sessionError) {
+          console.error("Ошибка получения сессии:", sessionError);
+          throw sessionError;
+        }
 
         if (session?.user) {
           console.log("Найдена активная сессия");
@@ -72,9 +82,10 @@ export const useSessionManager = () => {
         console.error("Ошибка инициализации:", error);
         if (mounted) {
           setError(error instanceof Error ? error.message : "Неизвестная ошибка");
+          localStorage.removeItem('supabase.auth.token');
           toast({
             title: "Ошибка подключения",
-            description: "Не удалось подключиться к серверу. Проверьте подключение к интернету и попробуйте позже.",
+            description: "Не удалось подключиться к серверу. Пожалуйста, войдите снова.",
             variant: "destructive",
           });
           setInitialized(true);
