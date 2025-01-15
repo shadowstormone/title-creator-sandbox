@@ -25,47 +25,28 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   db: {
     schema: 'public'
   },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  }
 });
-
-type QueryResult = {
-  data: any;
-  error: any;
-};
 
 export const checkSupabaseConnection = async () => {
   try {
     console.log("Проверка подключения к Supabase...");
-    const start = Date.now();
     
-    // Сначала проверяем статус аутентификации
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // Если есть сессия, проверяем ip_sessions
-    if (session?.user) {
-      const { data, error } = await supabase
-        .from('ip_sessions')
-        .select('last_active')
-        .eq('user_id', session.user.id)
-        .single();
+    // Простой запрос для проверки соединения
+    const { data, error } = await supabase
+      .from('ip_sessions')
+      .select('count', { count: 'exact', head: true });
 
-      if (error && error.code !== 'PGRST116') { // Игнорируем ошибку "не найдено"
-        console.error('Ошибка проверки ip_sessions:', error);
-        return false;
-      }
-    } else {
-      // Если нет сессии, делаем простой запрос для проверки соединения
-      const { error } = await supabase
-        .from('ip_sessions')
-        .select('count', { count: 'exact', head: true });
-
-      if (error) {
-        console.error('Ошибка проверки соединения:', error);
-        return false;
-      }
+    if (error) {
+      console.error('Ошибка проверки соединения:', error);
+      return false;
     }
 
-    const duration = Date.now() - start;
-    console.log(`Время ответа Supabase: ${duration}ms`);
+    console.log('Подключение к Supabase успешно установлено');
     return true;
   } catch (error) {
     if (error instanceof Error) {
