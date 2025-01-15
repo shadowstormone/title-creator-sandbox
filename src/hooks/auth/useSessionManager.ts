@@ -3,6 +3,7 @@ import { supabase, checkSupabaseConnection } from '@/lib/supabaseClient';
 import { useAuthStore } from './useAuthStore';
 import { useAuthMethods } from './useAuthMethods';
 import { useToast } from '@/hooks/use-toast';
+import { trackIpSession, checkIpSession, updateIpActivity } from '@/hooks/auth/useIpSession';
 
 export const useSessionManager = () => {
   const { setSession, setLoading, setInitialized, setError, reset } = useAuthStore();
@@ -65,8 +66,17 @@ export const useSessionManager = () => {
 
         if (session?.user) {
           console.log("Найдена активная сессия");
-          setSession(session);
-          await methods.loadUserProfile(session.user.id);
+          const hasValidIpSession = await checkIpSession(session.user.id);
+          
+          if (hasValidIpSession) {
+            setSession(session);
+            await methods.loadUserProfile(session.user.id);
+            await updateIpActivity(session.user.id);
+          } else {
+            console.log("IP сессия устарела или не найдена, требуется повторный вход");
+            await supabase.auth.signOut();
+            reset();
+          }
         } else {
           console.log("Активная сессия не найдена");
           reset();
@@ -104,8 +114,17 @@ export const useSessionManager = () => {
 
       try {
         if (session?.user) {
+          if (event === 'SIGNED_IN') {
+            await trackIpSession(session.user.id);
+          }
           setSession(session);
           await methods.loadUserProfile(session.user.id);
+          if (event === 'SIGNED_IN') {
+            toast({
+              title: "Успешный вход",
+              description: "Вы успешно вошли в систему",
+            });
+          }
         } else {
           reset();
         }

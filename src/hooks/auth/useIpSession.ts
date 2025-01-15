@@ -27,6 +27,7 @@ export const trackIpSession = async (userId: string) => {
 
   if (error) {
     console.error('Error tracking IP session:', error);
+    throw error;
   }
 };
 
@@ -44,7 +45,12 @@ export const checkIpSession = async (userId: string): Promise<boolean> => {
     .eq('ip_address', ip)
     .single();
 
-  if (error || !data) return false;
+  if (error) {
+    console.error('Error checking IP session:', error);
+    return false;
+  }
+
+  if (!data) return false;
 
   const lastActive = new Date(data.last_active);
   return lastActive > oneHourAgo;
@@ -62,5 +68,6 @@ export const updateIpActivity = async (userId: string) => {
 
   if (error) {
     console.error('Error updating IP activity:', error);
+    throw error;
   }
 };
