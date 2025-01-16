@@ -1,39 +1,53 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from './database.types';
+import type { Database } from './database.types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    'Missing Supabase environment variables. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file.'
+    'Отсутствуют переменные окружения Supabase. Убедитесь, что VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY установлены в вашем .env файле.'
   );
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+});
 
 export const checkSupabaseConnection = async () => {
   try {
-    console.log("Checking Supabase connection...");
+    console.log("Проверка подключения к Supabase...");
     
-    const { error } = await supabase.from('profiles').select('*').limit(1);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .limit(1);
 
     if (error) {
-      console.error('Connection check error:', error);
+      console.error('Ошибка проверки соединения:', error);
       return false;
     }
 
-    console.log('Successfully connected to Supabase');
+    if (data === null) {
+      console.log('Подключение успешно, но таблица пуста');
+      return true;
+    }
+
+    console.log('Подключение к Supabase успешно установлено');
     return true;
   } catch (error) {
     if (error instanceof Error) {
-      console.error('Error checking Supabase connection:', {
+      console.error('Ошибка при проверке подключения к Supabase:', {
         name: error.name,
         message: error.message,
         stack: error.stack
       });
     } else {
-      console.error('Unknown error checking Supabase connection:', error);
+      console.error('Неизвестная ошибка при проверке подключения к Supabase:', error);
     }
     return false;
   }
