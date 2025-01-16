@@ -10,37 +10,30 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    storageKey: 'supabase.auth.token',
-  },
-});
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 export const checkSupabaseConnection = async () => {
   try {
-    console.log("Проверка подключения к Supabase...");
+    console.log("Checking Supabase connection...");
     
-    const { error } = await supabase.from('ip_sessions').select('*').limit(1);
+    const { error } = await supabase.from('profiles').select('*').limit(1);
 
     if (error) {
-      console.error('Ошибка проверки соединения:', error);
+      console.error('Connection check error:', error);
       return false;
     }
 
-    console.log('Подключение к Supabase успешно установлено');
+    console.log('Successfully connected to Supabase');
     return true;
   } catch (error) {
     if (error instanceof Error) {
-      console.error('Ошибка при проверке подключения к Supabase:', {
+      console.error('Error checking Supabase connection:', {
         name: error.name,
         message: error.message,
         stack: error.stack
       });
     } else {
-      console.error('Неизвестная ошибка при проверке подключения к Supabase:', error);
+      console.error('Unknown error checking Supabase connection:', error);
     }
     return false;
   }
