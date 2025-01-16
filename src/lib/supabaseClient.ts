@@ -36,7 +36,6 @@ export const checkSupabaseConnection = async () => {
   try {
     console.log("Проверка подключения к Supabase...");
     
-    // Простой запрос для проверки соединения
     const { data, error } = await supabase
       .from('ip_sessions')
       .select('count', { count: 'exact', head: true });

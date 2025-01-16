@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { User } from '@/lib/types';
 import { useAuthStore } from './useAuthStore';
 import { useToast } from '@/hooks/use-toast';
+import { trackIpSession } from './useIpSession';
 
 export const useAuthMethods = () => {
   const { setUser, setLoading, setError, reset, setInitialized } = useAuthStore();
@@ -78,9 +79,18 @@ export const useAuthMethods = () => {
         throw new Error("Не удалось получить данные пользователя");
       }
 
+      // Создаем запись в ip_sessions сразу после успешной аутентификации
+      await trackIpSession(data.user.id);
+      console.log("IP session tracked successfully");
+
       await loadUserProfile(data.user.id);
       setInitialized(true);
       console.log("Login successful");
+
+      toast({
+        title: "Успешно",
+        description: "Вы успешно вошли в систему",
+      });
     } catch (error) {
       setError(error instanceof Error ? error.message : "Unknown error");
       reset();
