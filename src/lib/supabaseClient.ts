@@ -35,7 +35,7 @@ export const checkSupabaseConnection = async () => {
     try {
       console.log(`Попытка подключения к Supabase... (попытка ${retryCount + 1}/${MAX_RETRIES})`);
       
-      const timeoutPromise = new Promise((_, reject) => {
+      const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Timeout')), CONNECTION_TIMEOUT);
       });
 
@@ -47,7 +47,7 @@ export const checkSupabaseConnection = async () => {
 
       const result = await Promise.race([queryPromise, timeoutPromise]);
       
-      if ('error' in result && result.error) {
+      if (result.error) {
         throw result.error;
       }
 
