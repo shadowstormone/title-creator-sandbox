@@ -16,7 +16,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     storageKey: 'supabase.auth.token',
-    storage: window.localStorage
+    storage: window.localStorage,
+    flowType: 'pkce'
   },
   realtime: {
     params: {
@@ -32,7 +33,9 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('Проверка подключения к Supabase...');
     
-    // Простой запрос для проверки подключения
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Текущая сессия:', session ? 'Активна' : 'Отсутствует');
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('count')
