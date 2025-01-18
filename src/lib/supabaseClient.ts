@@ -14,55 +14,40 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storageKey: 'supabase.auth.token',
+    storage: window.localStorage
   },
-  global: {
-    headers: { 'x-my-custom-header': 'my-app-name' },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
   },
   db: {
     schema: 'public'
   }
 });
 
-const CONNECTION_TIMEOUT = 15000; // 15 seconds
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 3000; // 3 seconds
-
 export const checkSupabaseConnection = async (): Promise<boolean> => {
-  let retryCount = 0;
+  try {
+    console.log('Проверка подключения к Supabase...');
+    
+    // Простой запрос для проверки подключения
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('count')
+      .limit(1)
+      .single();
 
-  const attemptConnection = async (): Promise<boolean> => {
-    try {
-      console.log(`Попытка подключения к Supabase... (попытка ${retryCount + 1}/${MAX_RETRIES})`);
-      
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout')), CONNECTION_TIMEOUT);
-      });
-
-      const queryPromise = supabase
-        .from('profiles')
-        .select('count')
-        .limit(1)
-        .single();
-
-      await Promise.race([queryPromise, timeoutPromise]);
-      
-      console.log('Подключение к Supabase успешно установлено');
-      return true;
-    } catch (error) {
-      console.error('Ошибка при проверке подключения к Supabase:', error);
-      
-      if (retryCount < MAX_RETRIES - 1) {
-        retryCount++;
-        console.log(`Повторная попытка через ${RETRY_DELAY/1000} секунд...`);
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-        return attemptConnection();
-      }
-      
-      console.error('Превышено максимальное количество попыток подключения');
+    if (error) {
+      console.error('Ошибка подключения к Supabase:', error.message);
       return false;
     }
-  };
 
-  return attemptConnection();
+    console.log('Подключение к Supabase успешно установлено');
+    return true;
+  } catch (error) {
+    console.error('Критическая ошибка при подключении к Supabase:', error);
+    return false;
+  }
 };
