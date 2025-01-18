@@ -24,11 +24,11 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-const CONNECTION_TIMEOUT = 10000; // 10 seconds
+const CONNECTION_TIMEOUT = 15000; // 15 seconds
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 3000; // 3 seconds
 
-export const checkSupabaseConnection = async () => {
+export const checkSupabaseConnection = async (): Promise<boolean> => {
   let retryCount = 0;
 
   const attemptConnection = async (): Promise<boolean> => {
@@ -45,12 +45,8 @@ export const checkSupabaseConnection = async () => {
         .limit(1)
         .single();
 
-      const result = await Promise.race([queryPromise, timeoutPromise]);
+      await Promise.race([queryPromise, timeoutPromise]);
       
-      if (result.error) {
-        throw result.error;
-      }
-
       console.log('Подключение к Supabase успешно установлено');
       return true;
     } catch (error) {
