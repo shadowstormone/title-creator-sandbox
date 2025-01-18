@@ -27,7 +27,6 @@ export const useSessionManager = () => {
         console.log("Начало инициализации аутентификации...");
         setLoading(true);
 
-        // Очистка существующей сессии если инициализация занимает слишком много времени
         initializationTimeout = setTimeout(() => {
           if (!mounted) return;
           console.log("Превышено время ожидания, сброс сессии...");
@@ -66,6 +65,7 @@ export const useSessionManager = () => {
 
         if (session?.user) {
           console.log("Найдена активная сессия");
+          await trackIpSession(session.user.id);
           const hasValidIpSession = await checkIpSession(session.user.id);
           
           if (hasValidIpSession) {

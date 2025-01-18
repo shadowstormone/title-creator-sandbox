@@ -55,9 +55,6 @@ export const checkIpSession = async (userId: string): Promise<boolean> => {
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') { // Запись не найдена
-        return false;
-      }
       console.error('Error checking IP session:', error);
       return false;
     }
