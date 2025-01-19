@@ -15,13 +15,35 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    storage: localStorage
+    storage: localStorage,
+    storageKey: 'supabase.auth.token',
+    flowType: 'pkce'
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  },
+  db: {
+    schema: 'public'
   }
 });
 
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('Проверка подключения к Supabase...');
+    
+    // Сначала проверяем наличие сохраненной сессии
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Ошибка при получении сессии:', sessionError);
+      return false;
+    }
+
+    console.log('Статус сессии:', session ? 'Активна' : 'Отсутствует');
+
+    // Даже если сессия отсутствует, проверяем подключение к базе
     const { data, error } = await supabase
       .from('profiles')
       .select('count')
@@ -38,5 +60,30 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
   } catch (error) {
     console.error('Критическая ошибка при подключении к Supabase:', error);
     return false;
+  }
+};
+
+// Функция для восстановления сессии
+export const restoreSession = async () => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Ошибка при восстановлении сессии:', error);
+      return null;
+    }
+
+    if (session) {
+      // Обновляем токен если сессия существует
+      await supabase.auth.setSession(session);
+      console.log('Сессия успешно восстановлена');
+      return session;
+    }
+
+    console.log('Нет сохраненной сессии для восстановления');
+    return null;
+  } catch (error) {
+    console.error('Ошибка при попытке восстановления сессии:', error);
+    return null;
   }
 };

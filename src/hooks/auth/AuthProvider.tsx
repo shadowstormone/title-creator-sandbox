@@ -3,6 +3,8 @@ import { useAuthMethods } from "./useAuthMethods";
 import { AuthContext } from "./AuthContext";
 import { useSessionManager } from "./useSessionManager";
 import { useToast } from "@/hooks/use-toast";
+import { restoreSession } from "@/lib/supabaseClient";
+import { useEffect } from "react";
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -14,9 +16,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { toast } = useToast();
   useSessionManager();
 
-  // Показываем загрузочный экран только при первичной инициализации
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const restoredSession = await restoreSession();
+        if (restoredSession?.user) {
+          await methods.loadUserProfile(restoredSession.user.id);
+        }
+      } catch (error) {
+        console.error('Ошибка при инициализации аутентификации:', error);
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
   if (!initialized) {
-    // Если загрузка длится более 5 секунд, показываем сообщение об ошибке
     setTimeout(() => {
       if (!initialized && !error) {
         toast({
