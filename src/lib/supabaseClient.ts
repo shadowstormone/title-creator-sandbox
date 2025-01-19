@@ -31,39 +31,28 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
-    console.log('Проверка подключения к Supabase...');
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Текущая сессия:', session ? 'Активна' : 'Отсутствует');
     
-    // Сначала проверяем наличие сохраненной сессии
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error('Ошибка при получении сессии:', sessionError);
-      return false;
-    }
-
-    console.log('Статус сессии:', session ? 'Активна' : 'Отсутствует');
-
-    // Даже если сессия отсутствует, проверяем подключение к базе
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('profiles')
       .select('count')
       .limit(1)
       .single();
 
     if (error) {
-      console.error('Ошибка подключения к Supabase:', error.message);
+      console.error('Ошибка подключения к базе данных:', error.message);
       return false;
     }
 
-    console.log('Подключение к Supabase успешно установлено');
+    console.log('Подключение к базе данных успешно');
     return true;
   } catch (error) {
-    console.error('Критическая ошибка при подключении к Supabase:', error);
+    console.error('Ошибка при проверке подключения:', error);
     return false;
   }
 };
 
-// Функция для восстановления сессии
 export const restoreSession = async () => {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
@@ -73,17 +62,15 @@ export const restoreSession = async () => {
       return null;
     }
 
-    if (session) {
-      // Обновляем токен если сессия существует
-      await supabase.auth.setSession(session);
-      console.log('Сессия успешно восстановлена');
-      return session;
+    if (!session) {
+      console.log('Нет активной сессии');
+      return null;
     }
 
-    console.log('Нет сохраненной сессии для восстановления');
-    return null;
+    console.log('Сессия восстановлена:', session.user?.id);
+    return session;
   } catch (error) {
-    console.error('Ошибка при попытке восстановления сессии:', error);
+    console.error('Ошибка при восстановлении сессии:', error);
     return null;
   }
 };
