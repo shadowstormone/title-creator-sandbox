@@ -26,14 +26,30 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
   db: {
     schema: 'public'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'lovable'
+    }
   }
 });
 
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('Проверка подключения к Supabase...');
-    const { data, error } = await supabase.from('profiles').select('count').limit(1);
+    const { data: { session } } = await supabase.auth.getSession();
     
+    if (session) {
+      console.log('Активная сессия найдена:', session.user.id);
+    } else {
+      console.log('Активная сессия не найдена');
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('count')
+      .limit(1);
+
     if (error) {
       console.error('Ошибка при проверке подключения:', error);
       return false;
