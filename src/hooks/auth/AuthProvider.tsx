@@ -18,8 +18,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useSessionManager();
 
   useEffect(() => {
+    let mounted = true;
+    
     const initializeAuth = async () => {
-      if (initAttempted) return;
+      if (initAttempted || !mounted) return;
       setInitAttempted(true);
       
       try {
@@ -28,18 +30,36 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (restoredSession?.user) {
           console.log('Загрузка профиля пользователя...');
-          await methods.loadUserProfile(restoredSession.user.id);
-          console.log('Профиль пользователя загружен');
+          const userProfile = await methods.loadUserProfile(restoredSession.user.id);
+          if (!userProfile && mounted) {
+            console.error('Не удалось загрузить профиль пользователя');
+            toast({
+              title: "Ошибка",
+              description: "Не удалось загрузить данные профиля",
+              variant: "destructive",
+            });
+          }
         } else {
           console.log('Сессия отсутствует, пропуск загрузки профиля');
         }
       } catch (error) {
         console.error('Ошибка при инициализации аутентификации:', error);
+        if (mounted) {
+          toast({
+            title: "Ошибка",
+            description: "Произошла ошибка при загрузке профиля",
+            variant: "destructive",
+          });
+        }
       }
     };
 
     initializeAuth();
-  }, [methods, initAttempted]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [methods, initAttempted, toast]);
 
   if (!initialized && !initAttempted) {
     return (

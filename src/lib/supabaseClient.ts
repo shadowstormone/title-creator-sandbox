@@ -31,21 +31,15 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    console.log('Текущая сессия:', session ? 'Активна' : 'Отсутствует');
+    console.log('Проверка подключения к Supabase...');
+    const { data, error } = await supabase.from('profiles').select('count').limit(1);
     
-    const { error } = await supabase
-      .from('profiles')
-      .select('count')
-      .limit(1)
-      .single();
-
     if (error) {
-      console.error('Ошибка подключения к базе данных:', error.message);
+      console.error('Ошибка при проверке подключения:', error);
       return false;
     }
 
-    console.log('Подключение к базе данных успешно');
+    console.log('Подключение к Supabase успешно');
     return true;
   } catch (error) {
     console.error('Ошибка при проверке подключения:', error);
@@ -55,6 +49,7 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
 
 export const restoreSession = async () => {
   try {
+    console.log('Попытка восстановления сессии...');
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
@@ -63,11 +58,11 @@ export const restoreSession = async () => {
     }
 
     if (!session) {
-      console.log('Нет активной сессии');
+      console.log('Активная сессия не найдена');
       return null;
     }
 
-    console.log('Сессия восстановлена:', session.user?.id);
+    console.log('Сессия успешно восстановлена:', session.user.id);
     return session;
   } catch (error) {
     console.error('Ошибка при восстановлении сессии:', error);
