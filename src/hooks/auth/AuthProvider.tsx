@@ -21,16 +21,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     let mounted = true;
     
     const initializeAuth = async () => {
-      if (initAttempted || !mounted) return;
-      setInitAttempted(true);
+      if (!mounted || initAttempted) return;
       
       try {
-        console.log('Начало инициализации аутентификации...');
         const restoredSession = await restoreSession();
         
         if (restoredSession?.user) {
           console.log('Загрузка профиля пользователя...');
           const userProfile = await methods.loadUserProfile(restoredSession.user.id);
+          
           if (!userProfile && mounted) {
             console.error('Не удалось загрузить профиль пользователя');
             toast({
@@ -39,17 +38,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               variant: "destructive",
             });
           }
-        } else {
-          console.log('Сессия отсутствует, пропуск загрузки профиля');
         }
       } catch (error) {
-        console.error('Ошибка при инициализации аутентификации:', error);
+        console.error('Ошибка при инициализации:', error);
         if (mounted) {
           toast({
             title: "Ошибка",
             description: "Произошла ошибка при загрузке профиля",
             variant: "destructive",
           });
+        }
+      } finally {
+        if (mounted) {
+          setInitAttempted(true);
         }
       }
     };
@@ -66,23 +67,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-t-purple-500 border-purple-200 rounded-full animate-spin"></div>
-          <p className="mt-4 text-lg text-gray-400">Загрузка сайта...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">Ошибка при загрузке: {error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
-          >
-            Обновить страницу
-          </button>
+          <p className="mt-4 text-lg text-gray-400">Загрузка...</p>
         </div>
       </div>
     );

@@ -3,16 +3,13 @@ import { useAuthStore } from './useAuthStore';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthSession } from './useAuthSession';
 import { useProfileManagement } from './useProfileManagement';
-import { trackIpSession } from './useIpSession';
 
 export const useAuthMethods = () => {
   const { setLoading, setError, reset, setInitialized } = useAuthStore();
   const { toast } = useToast();
-  const { validateSession, handleSessionError } = useAuthSession();
   const { loadUserProfile, updateProfile } = useProfileManagement();
 
   const login = async (email: string, password: string): Promise<void> => {
-    console.log("Attempting login for email:", email);
     try {
       setLoading(true);
       setError(null);
@@ -34,14 +31,13 @@ export const useAuthMethods = () => {
           description: errorMessage,
           variant: "destructive",
         });
-        throw new Error(errorMessage);
+        throw error;
       }
 
       if (!data.user) {
         throw new Error("Не удалось получить данные пользователя");
       }
 
-      await trackIpSession(data.user.id);
       await loadUserProfile(data.user.id);
       setInitialized(true);
 
@@ -49,9 +45,6 @@ export const useAuthMethods = () => {
         title: "Успешно",
         description: "Вы успешно вошли в систему",
       });
-    } catch (error) {
-      handleSessionError(error as Error);
-      throw error;
     } finally {
       setLoading(false);
     }
@@ -73,17 +66,10 @@ export const useAuthMethods = () => {
 
       if (error) throw error;
 
-      if (!data.user) {
-        throw new Error("Не удалось создать пользователя");
-      }
-
       toast({
         title: "Успешно",
         description: "Проверьте вашу почту для подтверждения регистрации",
       });
-    } catch (error) {
-      handleSessionError(error as Error);
-      throw error;
     } finally {
       setLoading(false);
     }
@@ -99,9 +85,6 @@ export const useAuthMethods = () => {
         title: "Успешно",
         description: "Вы вышли из системы",
       });
-    } catch (error) {
-      handleSessionError(error as Error);
-      throw error;
     } finally {
       reset();
       setLoading(false);
