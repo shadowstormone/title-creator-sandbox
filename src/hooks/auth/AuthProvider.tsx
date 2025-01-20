@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const methods = useAuthMethods();
+  const { login, logout } = useAuthMethods();
   const { loadUserProfile, updateProfile } = useProfileManagement();
 
   useEffect(() => {
@@ -25,7 +25,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setSession(session);
         
         if (session?.user) {
-          await loadUserProfile(session.user.id);
+          const userProfile = await loadUserProfile(session.user.id);
+          setUser(userProfile);
         }
       } catch (error) {
         console.error('Initialization error:', error);
@@ -41,7 +42,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setSession(session);
       
       if (session?.user) {
-        await loadUserProfile(session.user.id);
+        const userProfile = await loadUserProfile(session.user.id);
+        setUser(userProfile);
       } else {
         setUser(null);
       }
@@ -62,16 +64,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     });
     if (error) throw error;
     if (data.user) {
-      await loadUserProfile(data.user.id);
+      const userProfile = await loadUserProfile(data.user.id);
+      setUser(userProfile);
     }
   };
 
-  const contextValue = {
+  const contextValue: AuthContextType = {
     user,
     session,
     loading,
-    ...methods,
+    login,
     register,
+    logout,
     loadUserProfile,
     updateProfile,
   };
