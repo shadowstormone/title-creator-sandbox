@@ -41,24 +41,54 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
 
 export const restoreSession = async () => {
   const startTime = Date.now();
-  const TIMEOUT = 8000; // 8 секунд максимум на восстановление сессии
+  const TIMEOUT = 15000; // Увеличиваем таймаут до 15 секунд
 
   try {
-    const sessionPromise = supabase.auth.getSession();
+    // Сначала проверяем локальное хранилище
+    const storedSession = localStorage.getItem('supabase.auth.token');
+    if (!storedSession) {
+      console.log('Сессия не найдена в локальном хранилище');
+      return null;
+    }
+
+    // Создаем промис для таймаута
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error('Превышено время ожидания при восстановлении сессии'));
       }, TIMEOUT);
     });
 
-    const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as { data: { session: any } };
-    
+    // Получаем сессию с сервера
+    const sessionPromise = supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        throw error;
+      }
+      return session;
+    });
+
+    // Используем Promise.race с обработкой ошибок
+    const session = await Promise.race([
+      sessionPromise,
+      timeoutPromise
+    ]).catch(error => {
+      console.error('Ошибка при восстановлении сессии:', error);
+      // Очищаем локальное хранилище при ошибке
+      localStorage.removeItem('supabase.auth.token');
+      return null;
+    });
+
     const elapsedTime = Date.now() - startTime;
-    console.log(`Сессия восстановлена за ${elapsedTime}ms`);
-    
+    if (session) {
+      console.log(`Сессия успешно восстановлена за ${elapsedTime}ms`);
+    } else {
+      console.log(`Сессия не восстановлена (${elapsedTime}ms)`);
+    }
+
     return session;
   } catch (error) {
-    console.error('Ошибка при восстановлении сессии:', error);
+    console.error('Критическая ошибка при восстановлении сессии:', error);
+    // Очищаем локальное хранилище при критической ошибке
+    localStorage.removeItem('supabase.auth.token');
     return null;
   }
 };

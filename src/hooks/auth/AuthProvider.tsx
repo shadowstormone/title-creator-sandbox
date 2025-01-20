@@ -16,11 +16,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const methods = useAuthMethods();
   const { toast } = useToast();
   const [initAttempted, setInitAttempted] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
   useSessionManager();
 
   useEffect(() => {
     let mounted = true;
-    const initTimeout = 10000; // 10 секунд максимум на инициализацию
+    const initTimeout = 20000; // Увеличиваем до 20 секунд
     let timeoutId: NodeJS.Timeout;
     
     const initializeAuth = async () => {
@@ -30,6 +31,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (mounted) {
           console.error('Превышено время ожидания при инициализации');
           setInitAttempted(true);
+          setInitError('Превышено время ожидания при инициализации');
           toast({
             title: "Ошибка",
             description: "Не удалось инициализировать приложение. Попробуйте перезагрузить страницу.",
@@ -42,24 +44,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.log("Начало инициализации аутентификации...");
         const restoredSession = await restoreSession() as Session | null;
         
-        if (mounted) {
-          clearTimeout(timeoutId);
-          
-          if (restoredSession?.user?.id) {
-            console.log('Загрузка профиля пользователя...');
-            await methods.loadUserProfile(restoredSession.user.id);
-          }
-          
-          setInitAttempted(true);
+        if (!mounted) return;
+        
+        clearTimeout(timeoutId);
+        
+        if (restoredSession?.user?.id) {
+          console.log('Загрузка профиля пользователя...');
+          await methods.loadUserProfile(restoredSession.user.id);
+        } else {
+          console.log('Сессия не найдена или недействительна');
         }
+        
+        setInitAttempted(true);
+        setInitError(null);
       } catch (error) {
         console.error('Ошибка при инициализации:', error);
         if (mounted) {
           clearTimeout(timeoutId);
           setInitAttempted(true);
+          setInitError(error instanceof Error ? error.message : 'Неизвестная ошибка');
           toast({
             title: "Ошибка",
-            description: "Произошла ошибка при загрузке профиля",
+            description: "Произошла ошибка при загрузке профиля. Попробуйте перезагрузить страницу.",
             variant: "destructive",
           });
         }
@@ -80,6 +86,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-t-purple-500 border-purple-200 rounded-full animate-spin"></div>
           <p className="mt-4 text-lg text-gray-400">Загрузка...</p>
+          {initError && (
+            <p className="mt-2 text-sm text-red-400">{initError}</p>
+          )}
         </div>
       </div>
     );
