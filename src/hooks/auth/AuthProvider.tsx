@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AuthContext } from "./AuthContext";
+import { AuthContext, AuthContextType } from "./AuthContext"; // Added AuthContextType import
 import { useAuthStore } from "./useAuthStore";
 import { useAuthMethods } from "./useAuthMethods";
 import { useProfileManagement } from "./useProfileManagement";
