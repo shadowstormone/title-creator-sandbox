@@ -1,83 +1,91 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { AuthContext } from "./AuthContext";
 import { useAuthStore } from "./useAuthStore";
 import { useAuthMethods } from "./useAuthMethods";
-import { AuthContext } from "./AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { initializeSession, checkDatabaseConnection } from "@/lib/supabaseClient";
+import { useProfileManagement } from "./useProfileManagement";
+import { supabase } from "@/lib/supabaseClient";
+import { User } from "@/lib/types";
+import { Session } from "@supabase/supabase-js";
 
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const { user, session, loading } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const methods = useAuthMethods();
-  const { toast } = useToast();
+  const { loadUserProfile, updateProfile } = useProfileManagement();
 
   useEffect(() => {
-    let mounted = true;
-
     const initialize = async () => {
-      if (!mounted) return;
-
       try {
-        const isConnected = await checkDatabaseConnection();
-        if (!isConnected) {
-          throw new Error('Cannot connect to database');
-        }
-
-        const result = await initializeSession();
-        if (!result) {
-          useAuthStore.getState().reset();
-          return;
-        }
-
-        const { session, profile } = result;
-
-        if (profile) {
-          useAuthStore.getState().setUser({
-            id: profile.id,
-            username: profile.username || 'User',
-            email: profile.email || '',
-            role: profile.role || 'user',
-            createdAt: new Date(profile.created_at),
-          });
-          useAuthStore.getState().setSession(session);
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        
+        if (session?.user) {
+          await loadUserProfile(session.user.id);
         }
       } catch (error) {
         console.error('Initialization error:', error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить данные пользователя",
-          variant: "destructive",
-        });
       } finally {
-        if (mounted) {
-          useAuthStore.getState().setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
     initialize();
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event);
+      setSession(session);
+      
+      if (session?.user) {
+        await loadUserProfile(session.user.id);
+      } else {
+        setUser(null);
+      }
+    });
+
     return () => {
-      mounted = false;
+      subscription.unsubscribe();
     };
-  }, [toast]);
+  }, []);
+
+  const register = async (email: string, password: string, username: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username }
+      }
+    });
+    if (error) throw error;
+    if (data.user) {
+      await loadUserProfile(data.user.id);
+    }
+  };
+
+  const contextValue = {
+    user,
+    session,
+    loading,
+    ...methods,
+    register,
+    loadUserProfile,
+    updateProfile,
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-t-purple-500 border-purple-200 rounded-full animate-spin"></div>
-          <p className="mt-4 text-lg text-gray-400">Загрузка...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
       </div>
     );
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, ...methods }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

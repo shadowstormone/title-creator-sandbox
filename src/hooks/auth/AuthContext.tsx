@@ -9,7 +9,7 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, username: string) => Promise<void>;
   logout: () => Promise<void>;
-  loadUserProfile: (userId: string) => Promise<User | null>;
+  loadUserProfile: (userId: string) => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
 }
 
