@@ -31,21 +31,47 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
-    const { error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
-    return !error;
+    const { data: health } = await supabase.rpc('check_health');
+    return health === true;
   } catch (error) {
-    console.error('Ошибка при проверке подключения:', error);
+    console.error('Ошибка проверки подключения:', error);
     return false;
   }
 };
 
 export const restoreSession = async () => {
-  try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    return session;
-  } catch (error) {
-    console.error('Ошибка при восстановлении сессии:', error);
-    return null;
-  }
+  const startTime = Date.now();
+  const TIMEOUT = 5000; // 5 секунд максимум на восстановление сессии
+
+  return new Promise(async (resolve) => {
+    try {
+      const timeoutId = setTimeout(() => {
+        console.error('Превышено время ожидания при восстановлении сессии');
+        resolve(null);
+      }, TIMEOUT);
+
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      clearTimeout(timeoutId);
+      
+      if (error) {
+        console.error('Ошибка при восстановлении сессии:', error);
+        resolve(null);
+        return;
+      }
+
+      if (!session) {
+        console.log('Сессия не найдена');
+        resolve(null);
+        return;
+      }
+
+      const elapsedTime = Date.now() - startTime;
+      console.log(`Сессия восстановлена за ${elapsedTime}ms`);
+      resolve(session);
+    } catch (error) {
+      console.error('Критическая ошибка при восстановлении сессии:', error);
+      resolve(null);
+    }
+  });
 };

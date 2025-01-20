@@ -10,10 +10,11 @@ export const useAuthMethods = () => {
   const { loadUserProfile, updateProfile } = useProfileManagement();
 
   const login = async (email: string, password: string): Promise<void> => {
+    const startTime = Date.now();
     try {
       setLoading(true);
       setError(null);
-      console.log('Попытка входа...');
+      console.log('Начало процесса входа...');
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
@@ -43,8 +44,11 @@ export const useAuthMethods = () => {
 
       console.log('Успешный вход, загрузка профиля...');
       await loadUserProfile(data.user.id);
+      
+      const elapsedTime = Date.now() - startTime;
+      console.log(`Вход выполнен за ${elapsedTime}ms`);
+      
       setInitialized(true);
-
       toast({
         title: "Успешно",
         description: "Вы успешно вошли в систему",
@@ -58,7 +62,7 @@ export const useAuthMethods = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Попытка регистрации...');
+      console.log('Начало процесса регистрации...');
 
       const { data, error } = await supabase.auth.signUp({
         email: email.toLowerCase().trim(),
@@ -87,7 +91,7 @@ export const useAuthMethods = () => {
   const logout = async (): Promise<void> => {
     try {
       setLoading(true);
-      console.log('Попытка выхода...');
+      console.log('Начало процесса выхода...');
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 

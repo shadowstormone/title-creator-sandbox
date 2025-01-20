@@ -19,39 +19,48 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     let mounted = true;
+    const initTimeout = 10000; // 10 секунд максимум на инициализацию
+    let timeoutId: NodeJS.Timeout;
     
     const initializeAuth = async () => {
       if (!mounted || initAttempted) return;
       
+      timeoutId = setTimeout(() => {
+        if (mounted) {
+          console.error('Превышено время ожидания при инициализации');
+          setInitAttempted(true);
+          toast({
+            title: "Ошибка",
+            description: "Не удалось инициализировать приложение. Попробуйте перезагрузить страницу.",
+            variant: "destructive",
+          });
+        }
+      }, initTimeout);
+
       try {
         console.log("Начало инициализации аутентификации...");
         const restoredSession = await restoreSession();
         
-        if (restoredSession?.user) {
-          console.log('Загрузка профиля пользователя...');
-          const userProfile = await methods.loadUserProfile(restoredSession.user.id);
+        if (mounted) {
+          clearTimeout(timeoutId);
           
-          if (!userProfile && mounted) {
-            console.error('Не удалось загрузить профиль пользователя');
-            toast({
-              title: "Ошибка",
-              description: "Не удалось загрузить данные профиля",
-              variant: "destructive",
-            });
+          if (restoredSession?.user) {
+            console.log('Загрузка профиля пользователя...');
+            await methods.loadUserProfile(restoredSession.user.id);
           }
+          
+          setInitAttempted(true);
         }
       } catch (error) {
         console.error('Ошибка при инициализации:', error);
         if (mounted) {
+          clearTimeout(timeoutId);
+          setInitAttempted(true);
           toast({
             title: "Ошибка",
             description: "Произошла ошибка при загрузке профиля",
             variant: "destructive",
           });
-        }
-      } finally {
-        if (mounted) {
-          setInitAttempted(true);
         }
       }
     };
@@ -60,6 +69,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
     };
   }, [methods, initAttempted, toast]);
 
