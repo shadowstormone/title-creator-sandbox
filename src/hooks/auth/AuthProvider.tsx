@@ -5,6 +5,7 @@ import { useSessionManager } from "./useSessionManager";
 import { useToast } from "@/hooks/use-toast";
 import { restoreSession } from "@/lib/supabaseClient";
 import { useEffect, useState } from "react";
+import { Session } from "@supabase/supabase-js";
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -39,12 +40,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       try {
         console.log("Начало инициализации аутентификации...");
-        const restoredSession = await restoreSession();
+        const restoredSession = await restoreSession() as Session | null;
         
         if (mounted) {
           clearTimeout(timeoutId);
           
-          if (restoredSession?.user) {
+          if (restoredSession?.user?.id) {
             console.log('Загрузка профиля пользователя...');
             await methods.loadUserProfile(restoredSession.user.id);
           }

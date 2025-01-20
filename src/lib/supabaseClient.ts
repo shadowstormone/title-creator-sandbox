@@ -41,37 +41,24 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
 
 export const restoreSession = async () => {
   const startTime = Date.now();
-  const TIMEOUT = 5000; // 5 секунд максимум на восстановление сессии
+  const TIMEOUT = 8000; // 8 секунд максимум на восстановление сессии
 
-  return new Promise(async (resolve) => {
-    try {
-      const timeoutId = setTimeout(() => {
-        console.error('Превышено время ожидания при восстановлении сессии');
-        resolve(null);
+  try {
+    const sessionPromise = supabase.auth.getSession();
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Превышено время ожидания при восстановлении сессии'));
       }, TIMEOUT);
+    });
 
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      clearTimeout(timeoutId);
-      
-      if (error) {
-        console.error('Ошибка при восстановлении сессии:', error);
-        resolve(null);
-        return;
-      }
-
-      if (!session) {
-        console.log('Сессия не найдена');
-        resolve(null);
-        return;
-      }
-
-      const elapsedTime = Date.now() - startTime;
-      console.log(`Сессия восстановлена за ${elapsedTime}ms`);
-      resolve(session);
-    } catch (error) {
-      console.error('Критическая ошибка при восстановлении сессии:', error);
-      resolve(null);
-    }
-  });
+    const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as { data: { session: any } };
+    
+    const elapsedTime = Date.now() - startTime;
+    console.log(`Сессия восстановлена за ${elapsedTime}ms`);
+    
+    return session;
+  } catch (error) {
+    console.error('Ошибка при восстановлении сессии:', error);
+    return null;
+  }
 };
