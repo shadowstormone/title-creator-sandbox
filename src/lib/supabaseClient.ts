@@ -31,18 +31,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('count')
-      .limit(1)
-      .single();
-
-    if (error) {
-      console.error('Ошибка при проверке подключения:', error);
-      return false;
-    }
-
-    return true;
+    const { error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+    return !error;
   } catch (error) {
     console.error('Ошибка при проверке подключения:', error);
     return false;
@@ -52,12 +42,7 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
 export const restoreSession = async () => {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      console.error('Ошибка при восстановлении сессии:', error);
-      return null;
-    }
-
+    if (error) throw error;
     return session;
   } catch (error) {
     console.error('Ошибка при восстановлении сессии:', error);

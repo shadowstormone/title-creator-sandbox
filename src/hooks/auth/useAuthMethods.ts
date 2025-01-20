@@ -13,6 +13,7 @@ export const useAuthMethods = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('Попытка входа...');
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
@@ -20,6 +21,7 @@ export const useAuthMethods = () => {
       });
 
       if (error) {
+        console.error('Ошибка входа:', error);
         let errorMessage = "Ошибка входа";
         if (error.message.includes("Invalid login credentials")) {
           errorMessage = "Неверный email или пароль";
@@ -35,9 +37,11 @@ export const useAuthMethods = () => {
       }
 
       if (!data.user) {
+        console.error('Нет данных пользователя после входа');
         throw new Error("Не удалось получить данные пользователя");
       }
 
+      console.log('Успешный вход, загрузка профиля...');
       await loadUserProfile(data.user.id);
       setInitialized(true);
 
@@ -54,6 +58,7 @@ export const useAuthMethods = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('Попытка регистрации...');
 
       const { data, error } = await supabase.auth.signUp({
         email: email.toLowerCase().trim(),
@@ -64,8 +69,12 @@ export const useAuthMethods = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Ошибка регистрации:', error);
+        throw error;
+      }
 
+      console.log('Регистрация успешна');
       toast({
         title: "Успешно",
         description: "Проверьте вашу почту для подтверждения регистрации",
@@ -78,9 +87,11 @@ export const useAuthMethods = () => {
   const logout = async (): Promise<void> => {
     try {
       setLoading(true);
+      console.log('Попытка выхода...');
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
+      console.log('Выход успешен');
       toast({
         title: "Успешно",
         description: "Вы вышли из системы",

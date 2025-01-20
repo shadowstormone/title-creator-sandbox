@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (!mounted || initAttempted) return;
       
       try {
+        console.log("Начало инициализации аутентификации...");
         const restoredSession = await restoreSession();
         
         if (restoredSession?.user) {
