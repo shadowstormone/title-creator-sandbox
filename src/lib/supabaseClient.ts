@@ -5,9 +5,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    'Отсутствуют переменные окружения Supabase. Убедитесь, что VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY установлены в вашем .env файле.'
-  );
+  throw new Error('Missing Supabase environment variables');
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -19,76 +17,59 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     storageKey: 'supabase.auth.token',
     flowType: 'pkce'
   },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  },
   db: {
     schema: 'public'
   }
 });
 
-export const checkSupabaseConnection = async (): Promise<boolean> => {
+// Базовая проверка подключения к базе данных
+export const checkDatabaseConnection = async () => {
   try {
-    const { data: health } = await supabase.rpc('check_health');
-    return health === true;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .limit(1);
+    
+    if (error) throw error;
+    return true;
   } catch (error) {
-    console.error('Ошибка проверки подключения:', error);
+    console.error('Database connection error:', error);
     return false;
   }
 };
 
-export const restoreSession = async () => {
-  const startTime = Date.now();
-  const TIMEOUT = 15000; // Увеличиваем таймаут до 15 секунд
-
+// Инициализация сессии
+export const initializeSession = async () => {
   try {
-    // Сначала проверяем локальное хранилище
-    const storedSession = localStorage.getItem('supabase.auth.token');
-    if (!storedSession) {
-      console.log('Сессия не найдена в локальном хранилище');
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    
+    if (!session) {
+      console.log('No active session found');
       return null;
     }
 
-    // Создаем промис для таймаута
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error('Превышено время ожидания при восстановлении сессии'));
-      }, TIMEOUT);
-    });
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
 
-    // Получаем сессию с сервера
-    const sessionPromise = supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        throw error;
-      }
-      return session;
-    });
+    if (profileError) throw profileError;
 
-    // Используем Promise.race с обработкой ошибок
-    const session = await Promise.race([
-      sessionPromise,
-      timeoutPromise
-    ]).catch(error => {
-      console.error('Ошибка при восстановлении сессии:', error);
-      // Очищаем локальное хранилище при ошибке
-      localStorage.removeItem('supabase.auth.token');
-      return null;
-    });
-
-    const elapsedTime = Date.now() - startTime;
-    if (session) {
-      console.log(`Сессия успешно восстановлена за ${elapsedTime}ms`);
-    } else {
-      console.log(`Сессия не восстановлена (${elapsedTime}ms)`);
-    }
-
-    return session;
+    return { session, profile };
   } catch (error) {
-    console.error('Критическая ошибка при восстановлении сессии:', error);
-    // Очищаем локальное хранилище при критической ошибке
-    localStorage.removeItem('supabase.auth.token');
+    console.error('Session initialization error:', error);
     return null;
+  }
+};
+
+// Очистка сессии
+export const clearSession = async () => {
+  try {
+    await supabase.auth.signOut();
+    localStorage.removeItem('supabase.auth.token');
+  } catch (error) {
+    console.error('Error clearing session:', error);
   }
 };
