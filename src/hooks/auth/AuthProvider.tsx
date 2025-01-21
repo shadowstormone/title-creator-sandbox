@@ -6,28 +6,35 @@ import { useProfileManagement } from "./useProfileManagement";
 import { supabase } from "@/lib/supabaseClient";
 import { User } from "@/lib/types";
 import { Session } from "@supabase/supabase-js";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const { login, logout } = useAuthMethods();
   const { loadUserProfile, updateProfile } = useProfileManagement();
+  const { toast } = useToast();
 
   useEffect(() => {
-    let mounted = true;
+    let isSubscribed = true;
 
     const initializeAuth = async () => {
       try {
+        setLoading(true);
+        
+        // Очищаем текущую сессию при инициализации
+        await supabase.auth.signOut();
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Session error:', error);
-          if (mounted) {
+          if (isSubscribed) {
             setUser(null);
             setSession(null);
           }
@@ -36,14 +43,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         if (!session || !session.user?.id) {
           console.log('No valid session found');
-          if (mounted) {
+          if (isSubscribed) {
             setUser(null);
             setSession(null);
           }
           return;
         }
 
-        if (mounted) {
+        if (isSubscribed) {
           setSession(session);
           const userProfile = await loadUserProfile(session.user.id);
           
@@ -53,15 +60,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             return;
           }
 
-          if (mounted) {
+          if (isSubscribed) {
             setUser(userProfile);
           }
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        if (mounted) {
+        if (isSubscribed) {
           setUser(null);
           setSession(null);
+          toast({
+            title: "Ошибка",
+            description: "Произошла ошибка при инициализации авторизации",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (isSubscribed) {
+          setLoading(false);
         }
       }
     };
@@ -72,14 +88,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.log("Auth state changed:", event, session);
       
       if (!session || !session.user?.id) {
-        if (mounted) {
+        if (isSubscribed) {
           setUser(null);
           setSession(null);
         }
         return;
       }
 
-      if (mounted) {
+      if (isSubscribed) {
         setSession(session);
         const userProfile = await loadUserProfile(session.user.id);
         
@@ -89,14 +105,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           return;
         }
 
-        if (mounted) {
+        if (isSubscribed) {
           setUser(userProfile);
         }
       }
     });
 
     return () => {
-      mounted = false;
+      isSubscribed = false;
       subscription.unsubscribe();
     };
   }, []);

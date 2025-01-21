@@ -9,7 +9,7 @@ export const useAuthMethods = () => {
     try {
       useAuthStore.getState().setLoading(true);
       
-      // Сначала выходим из текущей сессии, если она есть
+      // Сначала выходим из текущей сессии
       await supabase.auth.signOut();
       useAuthStore.getState().reset();
       
