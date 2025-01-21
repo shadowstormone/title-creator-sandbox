@@ -12,7 +12,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [loading, setLoading] = useState(false); // Changed to false by default
+  const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const { login, logout } = useAuthMethods();
@@ -27,45 +27,82 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (error) {
           console.error('Session error:', error);
+          if (mounted) {
+            setUser(null);
+            setSession(null);
+          }
+          return;
+        }
+
+        if (!session) {
+          console.log('No active session');
+          if (mounted) {
+            setUser(null);
+            setSession(null);
+          }
           return;
         }
 
         if (session && mounted) {
           console.log('Session found:', session);
+          
+          // Verify that the session is valid by checking the user
+          if (!session.user?.id) {
+            console.log('Invalid session - no user ID');
+            setUser(null);
+            setSession(null);
+            return;
+          }
+
           setSession(session);
           
-          if (session.user) {
-            console.log('Loading user profile for:', session.user.id);
-            const userProfile = await loadUserProfile(session.user.id);
-            if (userProfile && mounted) {
-              console.log('User profile loaded:', userProfile);
-              setUser(userProfile);
-            }
+          const userProfile = await loadUserProfile(session.user.id);
+          if (!userProfile) {
+            console.log('No user profile found - logging out');
+            await logout();
+            return;
+          }
+
+          if (mounted) {
+            console.log('User profile loaded:', userProfile);
+            setUser(userProfile);
           }
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
+        if (mounted) {
+          setUser(null);
+          setSession(null);
+        }
       }
     };
 
-    // Start auth initialization without blocking
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event);
+      console.log("Auth state changed:", event, session);
       
-      if (session && mounted) {
-        setSession(session);
-        
-        if (session.user) {
-          const userProfile = await loadUserProfile(session.user.id);
-          if (userProfile && mounted) {
-            setUser(userProfile);
-          }
+      if (!session || !session.user?.id) {
+        if (mounted) {
+          setUser(null);
+          setSession(null);
         }
-      } else {
-        setUser(null);
-        setSession(null);
+        return;
+      }
+
+      if (mounted) {
+        setSession(session);
+        const userProfile = await loadUserProfile(session.user.id);
+        
+        if (!userProfile) {
+          console.log('No user profile found after state change - logging out');
+          await logout();
+          return;
+        }
+
+        if (mounted) {
+          setUser(userProfile);
+        }
       }
     });
 
@@ -90,7 +127,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       if (data.user) {
         const userProfile = await loadUserProfile(data.user.id);
-        if (userProfile) {
+        if (userProfile && mounted) {
           setUser(userProfile);
         }
       }
@@ -113,7 +150,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     updateProfile,
   };
 
-  // Remove loading screen, let the app render immediately
   return (
     <AuthContext.Provider value={contextValue}>
       {children}

@@ -16,7 +16,7 @@ export const useAuthMethods = () => {
 
       if (error) throw error;
 
-      if (!data.user) {
+      if (!data.user || !data.session) {
         throw new Error("Не удалось получить данные пользователя");
       }
 
@@ -26,7 +26,11 @@ export const useAuthMethods = () => {
         .eq('id', data.user.id)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError || !profile) {
+        console.error('Profile error:', profileError);
+        await supabase.auth.signOut();
+        throw new Error("Профиль пользователя не найден");
+      }
 
       // Update store with user data
       useAuthStore.getState().setUser({
@@ -37,7 +41,6 @@ export const useAuthMethods = () => {
         createdAt: new Date(profile.created_at),
       });
 
-      // Explicitly set session
       useAuthStore.getState().setSession(data.session);
 
       toast({
@@ -46,6 +49,9 @@ export const useAuthMethods = () => {
       });
     } catch (error: any) {
       console.error('Login error:', error);
+      // Clear any partial state
+      useAuthStore.getState().reset();
+      
       toast({
         title: "Ошибка",
         description: error.message || "Ошибка входа",
@@ -64,6 +70,7 @@ export const useAuthMethods = () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
+      // Clear all auth state
       useAuthStore.getState().reset();
       
       toast({
