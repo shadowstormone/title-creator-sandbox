@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 export const useAuthMethods = () => {
   const { toast } = useToast();
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<void> => {
     try {
       useAuthStore.getState().setLoading(true);
       
@@ -44,8 +44,6 @@ export const useAuthMethods = () => {
         title: "Успешно",
         description: "Вы вошли в систему",
       });
-
-      return data;
     } catch (error: any) {
       console.error('Login error:', error);
       toast({
