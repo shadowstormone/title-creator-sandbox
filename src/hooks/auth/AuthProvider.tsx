@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AuthContext, AuthContextType } from "./AuthContext"; // Added AuthContextType import
+import { AuthContext, AuthContextType } from "./AuthContext";
 import { useAuthStore } from "./useAuthStore";
 import { useAuthMethods } from "./useAuthMethods";
 import { useProfileManagement } from "./useProfileManagement";
@@ -21,12 +21,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const initialize = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
+        setLoading(true);
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (session?.user) {
-          const userProfile = await loadUserProfile(session.user.id);
-          setUser(userProfile);
+        if (error) {
+          console.error('Session error:', error);
+          throw error;
+        }
+
+        if (session) {
+          console.log('Session found:', session);
+          setSession(session);
+          
+          if (session.user) {
+            console.log('Loading user profile for:', session.user.id);
+            const userProfile = await loadUserProfile(session.user.id);
+            if (userProfile) {
+              console.log('User profile loaded:', userProfile);
+              setUser(userProfile);
+            } else {
+              console.warn('No user profile found');
+            }
+          }
+        } else {
+          console.log('No active session');
         }
       } catch (error) {
         console.error('Initialization error:', error);
@@ -39,13 +57,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
-      setSession(session);
       
-      if (session?.user) {
-        const userProfile = await loadUserProfile(session.user.id);
-        setUser(userProfile);
+      if (session) {
+        setSession(session);
+        
+        if (session.user) {
+          const userProfile = await loadUserProfile(session.user.id);
+          if (userProfile) {
+            setUser(userProfile);
+          }
+        }
       } else {
         setUser(null);
+        setSession(null);
       }
     });
 
@@ -55,17 +79,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const register = async (email: string, password: string, username: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { username }
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username }
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        const userProfile = await loadUserProfile(data.user.id);
+        setUser(userProfile);
       }
-    });
-    if (error) throw error;
-    if (data.user) {
-      const userProfile = await loadUserProfile(data.user.id);
-      setUser(userProfile);
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
     }
   };
 

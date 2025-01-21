@@ -28,6 +28,7 @@ export const useAuthMethods = () => {
 
       if (profileError) throw profileError;
 
+      // Update store with user data
       useAuthStore.getState().setUser({
         id: data.user.id,
         username: profile.username || 'User',
@@ -35,12 +36,16 @@ export const useAuthMethods = () => {
         role: profile.role || 'user',
         createdAt: new Date(profile.created_at),
       });
+
+      // Explicitly set session
       useAuthStore.getState().setSession(data.session);
 
       toast({
         title: "Успешно",
         description: "Вы вошли в систему",
       });
+
+      return data;
     } catch (error: any) {
       console.error('Login error:', error);
       toast({
@@ -57,8 +62,12 @@ export const useAuthMethods = () => {
   const logout = async () => {
     try {
       useAuthStore.getState().setLoading(true);
-      await supabase.auth.signOut();
+      
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       useAuthStore.getState().reset();
+      
       toast({
         title: "Успешно",
         description: "Вы вышли из системы",
