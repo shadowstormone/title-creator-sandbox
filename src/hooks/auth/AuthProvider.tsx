@@ -12,58 +12,54 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed to false by default
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const { login, logout } = useAuthMethods();
   const { loadUserProfile, updateProfile } = useProfileManagement();
 
   useEffect(() => {
-    const initialize = async () => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
       try {
-        setLoading(true);
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Session error:', error);
-          throw error;
+          return;
         }
 
-        if (session) {
+        if (session && mounted) {
           console.log('Session found:', session);
           setSession(session);
           
           if (session.user) {
             console.log('Loading user profile for:', session.user.id);
             const userProfile = await loadUserProfile(session.user.id);
-            if (userProfile) {
+            if (userProfile && mounted) {
               console.log('User profile loaded:', userProfile);
               setUser(userProfile);
-            } else {
-              console.warn('No user profile found');
             }
           }
-        } else {
-          console.log('No active session');
         }
       } catch (error) {
-        console.error('Initialization error:', error);
-      } finally {
-        setLoading(false);
+        console.error('Auth initialization error:', error);
       }
     };
 
-    initialize();
+    // Start auth initialization without blocking
+    initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
       
-      if (session) {
+      if (session && mounted) {
         setSession(session);
         
         if (session.user) {
           const userProfile = await loadUserProfile(session.user.id);
-          if (userProfile) {
+          if (userProfile && mounted) {
             setUser(userProfile);
           }
         }
@@ -74,12 +70,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
-  const register = async (email: string, password: string, username: string) => {
+  const register = async (email: string, password: string, username: string): Promise<void> => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -92,11 +90,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       if (data.user) {
         const userProfile = await loadUserProfile(data.user.id);
-        setUser(userProfile);
+        if (userProfile) {
+          setUser(userProfile);
+        }
       }
     } catch (error) {
       console.error('Registration error:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -111,14 +113,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     updateProfile,
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-      </div>
-    );
-  }
-
+  // Remove loading screen, let the app render immediately
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
