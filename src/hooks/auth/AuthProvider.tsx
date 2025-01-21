@@ -46,7 +46,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (session && mounted) {
           console.log('Session found:', session);
           
-          // Verify that the session is valid by checking the user
           if (!session.user?.id) {
             console.log('Invalid session - no user ID');
             setUser(null);
@@ -127,7 +126,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       if (data.user) {
         const userProfile = await loadUserProfile(data.user.id);
-        if (userProfile && mounted) {
+        if (userProfile) {
           setUser(userProfile);
         }
       }
