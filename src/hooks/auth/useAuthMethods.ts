@@ -9,6 +9,10 @@ export const useAuthMethods = () => {
     try {
       useAuthStore.getState().setLoading(true);
       
+      // Сначала выходим из текущей сессии, если она есть
+      await supabase.auth.signOut();
+      useAuthStore.getState().reset();
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
@@ -32,7 +36,6 @@ export const useAuthMethods = () => {
         throw new Error("Профиль пользователя не найден");
       }
 
-      // Update store with user data
       useAuthStore.getState().setUser({
         id: data.user.id,
         username: profile.username || 'User',
@@ -49,7 +52,6 @@ export const useAuthMethods = () => {
       });
     } catch (error: any) {
       console.error('Login error:', error);
-      // Clear any partial state
       useAuthStore.getState().reset();
       
       toast({
@@ -70,7 +72,6 @@ export const useAuthMethods = () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // Clear all auth state
       useAuthStore.getState().reset();
       
       toast({

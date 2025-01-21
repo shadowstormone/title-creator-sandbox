@@ -34,8 +34,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           return;
         }
 
-        if (!session) {
-          console.log('No active session');
+        if (!session || !session.user?.id) {
+          console.log('No valid session found');
           if (mounted) {
             setUser(null);
             setSession(null);
@@ -43,19 +43,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           return;
         }
 
-        if (session && mounted) {
-          console.log('Session found:', session);
-          
-          if (!session.user?.id) {
-            console.log('Invalid session - no user ID');
-            setUser(null);
-            setSession(null);
-            return;
-          }
-
+        if (mounted) {
           setSession(session);
-          
           const userProfile = await loadUserProfile(session.user.id);
+          
           if (!userProfile) {
             console.log('No user profile found - logging out');
             await logout();
@@ -63,7 +54,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           }
 
           if (mounted) {
-            console.log('User profile loaded:', userProfile);
             setUser(userProfile);
           }
         }

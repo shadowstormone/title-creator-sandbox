@@ -16,7 +16,10 @@ export const useProfileManagement = () => {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Profile loading error:", error);
+        throw error;
+      }
 
       if (!profile) {
         console.log("No profile found");
