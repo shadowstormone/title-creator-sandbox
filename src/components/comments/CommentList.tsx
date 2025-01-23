@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ThumbsUp, ThumbsDown, Trash, Edit } from "lucide-react";
-import { Comment, User } from "@/lib/types";
+import { Comment } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
 
 interface CommentListProps {
@@ -48,9 +48,10 @@ const CommentList = ({
     }
   };
 
-  const canModerateComments = (user: User | null) => {
-    if (!user) return false;
-    return ["creator", "admin", "moderator"].includes(user.role);
+  const canModerateComments = (currentUser: any) => {
+    if (!currentUser) return false;
+    const userMetadata = currentUser.user_metadata || {};
+    return ["creator", "admin", "moderator"].includes(userMetadata.role);
   };
 
   const startEdit = (comment: Comment) => {
@@ -85,14 +86,14 @@ const CommentList = ({
           <div key={comment.id} className="bg-gray-800 p-4 rounded-lg">
             <div className="flex items-start space-x-4">
               <Avatar>
-                <AvatarImage src={user?.avatarUrl} />
-                <AvatarFallback>{user?.username?.[0].toUpperCase()}</AvatarFallback>
+                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarFallback>{user?.user_metadata?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-white">{user?.username}</p>
-                    <p className="text-sm text-gray-400">{user?.role}</p>
+                    <p className="font-medium text-white">{user?.user_metadata?.username || 'Пользователь'}</p>
+                    <p className="text-sm text-gray-400">{user?.user_metadata?.role || 'user'}</p>
                   </div>
                   <p className="text-sm text-gray-400">
                     {new Date(comment.createdAt).toLocaleDateString()}
