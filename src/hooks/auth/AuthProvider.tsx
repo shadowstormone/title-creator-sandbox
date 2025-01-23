@@ -20,46 +20,53 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { loadUserProfile, updateProfile } = useProfileManagement();
   const { toast } = useToast();
 
+  const handleSessionChange = async (currentSession: Session | null) => {
+    console.log("Handling session change:", currentSession?.user?.id);
+    
+    try {
+      if (!currentSession?.user?.id) {
+        setUser(null);
+        setSession(null);
+        return;
+      }
+
+      const userProfile = await loadUserProfile(currentSession.user.id);
+      
+      if (userProfile) {
+        setSession(currentSession);
+        setUser(userProfile);
+      } else {
+        console.log("No user profile found, logging out");
+        setUser(null);
+        setSession(null);
+        await logout();
+      }
+    } catch (error) {
+      console.error("Error handling session change:", error);
+      setUser(null);
+      setSession(null);
+      await logout();
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        if (!mounted) return;
-        
         setLoading(true);
-        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Session error:', error);
-          if (mounted) {
-            setUser(null);
-            setSession(null);
-          }
-          return;
-        }
-
-        if (!session || !session.user?.id) {
-          console.log('No valid session found');
-          if (mounted) {
-            setUser(null);
-            setSession(null);
-          }
-          return;
+          throw error;
         }
 
         if (mounted) {
-          const userProfile = await loadUserProfile(session.user.id);
-          if (userProfile) {
-            setSession(session);
-            setUser(userProfile);
-          } else {
-            setUser(null);
-            setSession(null);
-          }
+          await handleSessionChange(initialSession);
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error("Auth initialization error:", error);
         if (mounted) {
           setUser(null);
           setSession(null);
@@ -78,38 +85,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      console.log("Auth state changed:", event, newSession?.user?.id);
       
-      if (event === 'SIGNED_OUT' || !session || !session.user?.id) {
-        if (mounted) {
-          setUser(null);
-          setSession(null);
-          setLoading(false);
-        }
+      if (!mounted) return;
+
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSession(null);
+        setLoading(false);
         return;
       }
 
-      if (mounted) {
-        try {
-          const userProfile = await loadUserProfile(session.user.id);
-          if (userProfile) {
-            setSession(session);
-            setUser(userProfile);
-          } else {
-            setUser(null);
-            setSession(null);
-            await logout();
-          }
-        } catch (error) {
-          console.error('Error loading user profile:', error);
-          setUser(null);
-          setSession(null);
-          await logout();
-        } finally {
-          setLoading(false);
-        }
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        await handleSessionChange(newSession);
       }
+
+      setLoading(false);
     });
 
     return () => {
