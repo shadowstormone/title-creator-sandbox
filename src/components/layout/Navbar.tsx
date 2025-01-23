@@ -6,32 +6,22 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { session, logout } = useAuth();
   const [canAccessAdmin, setCanAccessAdmin] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const checkAdminAccess = async () => {
-      if (!user) {
+      if (!session?.user) {
         setCanAccessAdmin(false);
         return;
       }
 
       try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role, is_superadmin')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Error checking admin access:", error);
-          setCanAccessAdmin(false);
-          return;
-        }
-
+        const { data: userMetadata } = await supabase.auth.admin.getUserById(session.user.id);
         setCanAccessAdmin(
-          profile?.is_superadmin || ["creator", "admin"].includes(profile?.role || "")
+          userMetadata?.user?.user_metadata?.role === 'admin' || 
+          userMetadata?.user?.user_metadata?.role === 'creator'
         );
       } catch (error) {
         console.error("Error checking admin access:", error);
@@ -40,7 +30,7 @@ const Navbar = () => {
     };
 
     checkAdminAccess();
-  }, [user]);
+  }, [session]);
 
   const handleLogout = async () => {
     try {
@@ -84,7 +74,7 @@ const Navbar = () => {
           </div>
           
           <div className="flex items-center">
-            {user ? (
+            {session ? (
               <>
                 {canAccessAdmin && (
                   <Link to="/admin">
@@ -93,11 +83,6 @@ const Navbar = () => {
                     </Button>
                   </Link>
                 )}
-                <Link to="/profile">
-                  <Button variant="outline" className="mr-4">
-                    Профиль
-                  </Button>
-                </Link>
                 <Button variant="ghost" onClick={handleLogout}>
                   Выйти
                 </Button>
