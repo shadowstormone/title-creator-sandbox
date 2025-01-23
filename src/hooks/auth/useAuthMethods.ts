@@ -20,28 +20,6 @@ export const useAuthMethods = () => {
         throw new Error("Не удалось получить данные пользователя");
       }
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
-
-      if (profileError || !profile) {
-        console.error('Profile error:', profileError);
-        await supabase.auth.signOut();
-        throw new Error("Профиль пользователя не найден");
-      }
-
-      useAuthStore.getState().setUser({
-        id: data.user.id,
-        username: profile.username || 'User',
-        email: data.user.email || '',
-        role: profile.role || 'user',
-        createdAt: new Date(profile.created_at),
-      });
-
-      useAuthStore.getState().setSession(data.session);
-
       toast({
         title: "Успешно",
         description: "Вы вошли в систему",

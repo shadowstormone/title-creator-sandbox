@@ -21,17 +21,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    let isSubscribed = true;
+    let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        setLoading(true);
+        if (!mounted) return;
         
+        setLoading(true);
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Session error:', error);
-          if (isSubscribed) {
+          if (mounted) {
             setUser(null);
             setSession(null);
           }
@@ -40,28 +41,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         if (!session || !session.user?.id) {
           console.log('No valid session found');
-          if (isSubscribed) {
+          if (mounted) {
             setUser(null);
             setSession(null);
           }
           return;
         }
 
-        if (isSubscribed) {
+        if (mounted) {
           const userProfile = await loadUserProfile(session.user.id);
-          
-          if (!userProfile) {
-            console.log('No user profile found - logging out');
-            await logout();
-            return;
+          if (userProfile) {
+            setSession(session);
+            setUser(userProfile);
+          } else {
+            setUser(null);
+            setSession(null);
           }
-
-          setSession(session);
-          setUser(userProfile);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        if (isSubscribed) {
+        if (mounted) {
           setUser(null);
           setSession(null);
           toast({
@@ -71,7 +70,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           });
         }
       } finally {
-        if (isSubscribed) {
+        if (mounted) {
           setLoading(false);
         }
       }
@@ -83,7 +82,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.log("Auth state changed:", event, session);
       
       if (event === 'SIGNED_OUT' || !session || !session.user?.id) {
-        if (isSubscribed) {
+        if (mounted) {
           setUser(null);
           setSession(null);
           setLoading(false);
@@ -91,20 +90,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return;
       }
 
-      if (isSubscribed) {
+      if (mounted) {
         try {
           const userProfile = await loadUserProfile(session.user.id);
-          
-          if (!userProfile) {
-            console.log('No user profile found after state change - logging out');
+          if (userProfile) {
+            setSession(session);
+            setUser(userProfile);
+          } else {
+            setUser(null);
+            setSession(null);
             await logout();
-            return;
           }
-
-          setSession(session);
-          setUser(userProfile);
         } catch (error) {
           console.error('Error loading user profile:', error);
+          setUser(null);
+          setSession(null);
           await logout();
         } finally {
           setLoading(false);
@@ -113,44 +113,42 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     });
 
     return () => {
-      isSubscribed = false;
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
-
-  const register = async (email: string, password: string, username: string): Promise<void> => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { username }
-        }
-      });
-      
-      if (error) throw error;
-      
-      if (data.user) {
-        const userProfile = await loadUserProfile(data.user.id);
-        if (userProfile) {
-          setUser(userProfile);
-        }
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const contextValue: AuthContextType = {
     user,
     session,
     loading,
     login,
-    register,
+    register: async (email: string, password: string, username: string) => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { username }
+          }
+        });
+        
+        if (error) throw error;
+        
+        if (data.user) {
+          const userProfile = await loadUserProfile(data.user.id);
+          if (userProfile) {
+            setUser(userProfile);
+          }
+        }
+      } catch (error) {
+        console.error('Registration error:', error);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
     logout,
     loadUserProfile,
     updateProfile,
