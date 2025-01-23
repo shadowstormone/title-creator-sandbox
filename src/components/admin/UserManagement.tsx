@@ -102,27 +102,29 @@ const UserManagement = () => {
     }
   };
 
-  const deleteUser = async (userId: string) => {
+  const deactivateUser = async (userId: string) => {
     try {
-      // Only delete the profile from the profiles table
       const { error } = await supabase
         .from('profiles')
-        .delete()
+        .update({ 
+          is_active: false,
+          deactivated_at: new Date().toISOString()
+        })
         .eq('id', userId);
 
       if (error) throw error;
 
       toast({
         title: "Успешно",
-        description: "Профиль пользователя удален",
+        description: "Пользователь деактивирован",
       });
 
       await fetchUsers();
     } catch (error) {
-      console.error('Error deleting user profile:', error);
+      console.error('Error deactivating user:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось удалить профиль пользователя",
+        description: "Не удалось деактивировать пользователя",
         variant: "destructive",
       });
     }
@@ -217,18 +219,18 @@ const UserManagement = () => {
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-gray-800">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">Удалить пользователя?</AlertDialogTitle>
+                        <AlertDialogTitle className="text-white">Деактивировать пользователя?</AlertDialogTitle>
                         <AlertDialogDescription className="text-gray-400">
-                          Это действие нельзя отменить. Профиль пользователя будет удален.
+                          Профиль пользователя будет деактивирован. Это действие можно отменить позже.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Отмена</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => deleteUser(user.id)}
+                          onClick={() => deactivateUser(user.id)}
                           className="bg-red-600 text-white hover:bg-red-700"
                         >
-                          Удалить
+                          Деактивировать
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
