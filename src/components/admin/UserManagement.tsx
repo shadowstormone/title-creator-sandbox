@@ -219,7 +219,7 @@ const UserManagement = () => {
                       <AlertDialogHeader>
                         <AlertDialogTitle className="text-white">Удалить пользователя?</AlertDialogTitle>
                         <AlertDialogDescription className="text-gray-400">
-                          Это действие нельзя отменить. Аккаунт пользователя будет удален навсегда.
+                          Это действие нельзя отменить. Профиль пользователя будет удален.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
