@@ -9,10 +9,6 @@ export const useAuthMethods = () => {
     try {
       useAuthStore.getState().setLoading(true);
       
-      // Сначала выходим из текущей сессии
-      await supabase.auth.signOut();
-      useAuthStore.getState().reset();
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,

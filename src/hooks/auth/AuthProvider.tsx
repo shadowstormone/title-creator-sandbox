@@ -27,9 +27,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         setLoading(true);
         
-        // Очищаем текущую сессию при инициализации
-        await supabase.auth.signOut();
-        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -51,7 +48,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
 
         if (isSubscribed) {
-          setSession(session);
           const userProfile = await loadUserProfile(session.user.id);
           
           if (!userProfile) {
@@ -60,9 +56,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             return;
           }
 
-          if (isSubscribed) {
-            setUser(userProfile);
-          }
+          setSession(session);
+          setUser(userProfile);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -87,26 +82,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session);
       
-      if (!session || !session.user?.id) {
+      if (event === 'SIGNED_OUT' || !session || !session.user?.id) {
         if (isSubscribed) {
           setUser(null);
           setSession(null);
+          setLoading(false);
         }
         return;
       }
 
       if (isSubscribed) {
-        setSession(session);
-        const userProfile = await loadUserProfile(session.user.id);
-        
-        if (!userProfile) {
-          console.log('No user profile found after state change - logging out');
-          await logout();
-          return;
-        }
+        try {
+          const userProfile = await loadUserProfile(session.user.id);
+          
+          if (!userProfile) {
+            console.log('No user profile found after state change - logging out');
+            await logout();
+            return;
+          }
 
-        if (isSubscribed) {
+          setSession(session);
           setUser(userProfile);
+        } catch (error) {
+          console.error('Error loading user profile:', error);
+          await logout();
+        } finally {
+          setLoading(false);
         }
       }
     });

@@ -35,16 +35,10 @@ export const useProfileManagement = () => {
       };
 
       console.log("User profile loaded:", user);
-      setUser(user);
       return user;
     } catch (error) {
       console.error("Error in loadUserProfile:", error);
       setError(error instanceof Error ? error.message : "Unknown error");
-      toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить профиль пользователя",
-        variant: "destructive",
-      });
       return null;
     }
   };
@@ -71,6 +65,8 @@ export const useProfileManagement = () => {
       if (!updatedProfile) {
         throw new Error("Не удалось обновить профиль");
       }
+
+      setUser(updatedProfile);
 
       toast({
         title: "Успешно",
