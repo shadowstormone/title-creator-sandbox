@@ -13,7 +13,6 @@ import AnimeDetails from "./pages/AnimeDetails";
 import AnimeEdit from "./pages/AnimeEdit";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Profile from "./pages/Profile";
 import Support from "./pages/Support";
 
 const queryClient = new QueryClient();
@@ -35,7 +34,6 @@ const App = () => (
               <Route path="/admin/anime/:id/:titleEn" element={<AnimeEdit />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/profile" element={<Profile />} />
               <Route path="/support" element={<Support />} />
             </Routes>
           </div>

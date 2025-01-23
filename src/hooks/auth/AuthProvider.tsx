@@ -3,7 +3,7 @@ import { AuthContext, AuthContextType } from "./AuthContext";
 import { useAuthStore } from "./useAuthStore";
 import { useAuthMethods } from "./useAuthMethods";
 import { supabase } from "@/lib/supabaseClient";
-import { Session } from "@supabase/supabase-js";
+import { Session, User } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthProviderProps {
@@ -13,6 +13,7 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const { login, logout } = useAuthMethods();
   const { toast } = useToast();
 
@@ -28,11 +29,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         if (mounted) {
           setSession(initialSession);
+          setUser(initialSession?.user ?? null);
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
         if (mounted) {
           setSession(null);
+          setUser(null);
           toast({
             title: "Ошибка",
             description: "Произошла ошибка при инициализации авторизации",
@@ -55,12 +58,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (event === 'SIGNED_OUT') {
         setSession(null);
+        setUser(null);
         setLoading(false);
         return;
       }
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setSession(newSession);
+        setUser(newSession?.user ?? null);
       }
 
       setLoading(false);
@@ -74,6 +79,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const contextValue: AuthContextType = {
     session,
+    user,
     loading,
     login,
     logout,
