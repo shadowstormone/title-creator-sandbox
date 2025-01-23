@@ -24,7 +24,7 @@ const AnimeEdit = () => {
         const { data, error } = await supabase
           .from('animes')
           .select('*')
-          .eq('id', id)
+          .eq('id', parseInt(id)) // Convert string ID to number
           .single();
 
         if (error) {

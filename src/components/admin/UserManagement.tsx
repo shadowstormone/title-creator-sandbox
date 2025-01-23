@@ -104,13 +104,13 @@ const UserManagement = () => {
 
   const deleteUser = async (userId: string) => {
     try {
-      // Only delete the profile, skip auth user deletion since we don't have admin rights
-      const { error: profileError } = await supabase
+      // Only delete the profile from the profiles table
+      const { error } = await supabase
         .from('profiles')
         .delete()
         .eq('id', userId);
 
-      if (profileError) throw profileError;
+      if (error) throw error;
 
       toast({
         title: "Успешно",
@@ -119,7 +119,7 @@ const UserManagement = () => {
 
       await fetchUsers();
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('Error deleting user profile:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось удалить профиль пользователя",
