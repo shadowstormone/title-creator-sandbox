@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
@@ -25,12 +26,16 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 // Базовая проверка подключения к базе данных
 export const checkDatabaseConnection = async () => {
   try {
+    // Try to access animes table instead, since profiles might not exist yet
     const { data, error } = await supabase
-      .from('profiles')
+      .from('animes')
       .select('id')
       .limit(1);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Database connection error (animes):', error);
+      return false;
+    }
     return true;
   } catch (error) {
     console.error('Database connection error:', error);
@@ -49,15 +54,24 @@ export const initializeSession = async () => {
       return null;
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
+    // Try to get profile data, but don't fail if profiles table doesn't exist yet
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
 
-    if (profileError) throw profileError;
-
-    return { session, profile };
+      if (!profileError) {
+        return { session, profile };
+      } else {
+        console.log('Could not fetch profile, returning session only:', profileError);
+        return { session, profile: null };
+      }
+    } catch (profileError) {
+      console.log('Error fetching profile, returning session only:', profileError);
+      return { session, profile: null };
+    }
   } catch (error) {
     console.error('Session initialization error:', error);
     return null;

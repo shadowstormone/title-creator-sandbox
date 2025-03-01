@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { UserRole } from "@/lib/types";
-import { Search, Ban, UserX } from "lucide-react";
+import { Search, Ban, UserX, CheckCircle } from "lucide-react";
 
 const roles: { value: UserRole; label: string }[] = [
   { value: "creator", label: "Создатель" },
@@ -33,6 +34,7 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -40,11 +42,11 @@ const UserManagement = () => {
 
       if (error) throw error;
       setUsers(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching users:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось загрузить список пользователей",
+        description: `Не удалось загрузить список пользователей: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -67,11 +69,11 @@ const UserManagement = () => {
       });
       
       await fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user role:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось обновить роль пользователя",
+        description: `Не удалось обновить роль пользователя: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -92,11 +94,36 @@ const UserManagement = () => {
       });
 
       await fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error banning user:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось заблокировать пользователя",
+        description: `Не удалось заблокировать пользователя: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const unbanUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_banned: false })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Пользователь разблокирован",
+      });
+
+      await fetchUsers();
+    } catch (error: any) {
+      console.error('Error unbanning user:', error);
+      toast({
+        title: "Ошибка",
+        description: `Не удалось разблокировать пользователя: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -120,11 +147,39 @@ const UserManagement = () => {
       });
 
       await fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deactivating user:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось деактивировать пользователя",
+        description: `Не удалось деактивировать пользователя: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const activateUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_active: true,
+          deactivated_at: null
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Пользователь активирован",
+      });
+
+      await fetchUsers();
+    } catch (error: any) {
+      console.error('Error activating user:', error);
+      toast({
+        title: "Ошибка",
+        description: `Не удалось активировать пользователя: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -159,6 +214,7 @@ const UserManagement = () => {
             <TableRow className="border-gray-700">
               <TableHead className="text-gray-300">Email</TableHead>
               <TableHead className="text-gray-300">Имя</TableHead>
+              <TableHead className="text-gray-300">Статус</TableHead>
               <TableHead className="text-gray-300">Роль</TableHead>
               <TableHead className="text-gray-300">Действия</TableHead>
             </TableRow>
@@ -168,6 +224,15 @@ const UserManagement = () => {
               <TableRow key={user.id} className="border-gray-700">
                 <TableCell className="text-white">{user.email}</TableCell>
                 <TableCell className="text-white">{user.username || 'Нет имени'}</TableCell>
+                <TableCell className="text-white">
+                  {user.is_banned ? (
+                    <span className="text-red-500">Заблокирован</span>
+                  ) : !user.is_active ? (
+                    <span className="text-yellow-500">Деактивирован</span>
+                  ) : (
+                    <span className="text-green-500">Активен</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-white">
                   <Select
                     value={user.role || 'user'}
@@ -185,56 +250,110 @@ const UserManagement = () => {
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell className="space-x-2">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="icon" className="bg-yellow-600 hover:bg-yellow-700">
-                        <Ban className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-gray-800">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">Заблокировать пользователя?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-gray-400">
-                          Пользователь не сможет войти в свой аккаунт.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Отмена</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => banUser(user.id)}
-                          className="bg-yellow-600 text-white hover:bg-yellow-700"
-                        >
-                          Заблокировать
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                <TableCell className="space-x-2 flex">
+                  {user.is_banned ? (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="bg-green-600 hover:bg-green-700 mr-2">
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-gray-800">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-white">Разблокировать пользователя?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-gray-400">
+                            Пользователь снова сможет войти в свой аккаунт.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Отмена</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => unbanUser(user.id)}
+                            className="bg-green-600 text-white hover:bg-green-700"
+                          >
+                            Разблокировать
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="bg-yellow-600 hover:bg-yellow-700 mr-2">
+                          <Ban className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-gray-800">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-white">Заблокировать пользователя?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-gray-400">
+                            Пользователь не сможет войти в свой аккаунт.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Отмена</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => banUser(user.id)}
+                            className="bg-yellow-600 text-white hover:bg-yellow-700"
+                          >
+                            Заблокировать
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
 
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="icon" className="bg-red-600 hover:bg-red-700">
-                        <UserX className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-gray-800">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">Деактивировать пользователя?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-gray-400">
-                          Профиль пользователя будет деактивирован. Это действие можно отменить позже.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Отмена</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deactivateUser(user.id)}
-                          className="bg-red-600 text-white hover:bg-red-700"
-                        >
-                          Деактивировать
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  {user.is_active ? (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="bg-red-600 hover:bg-red-700">
+                          <UserX className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-gray-800">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-white">Деактивировать пользователя?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-gray-400">
+                            Профиль пользователя будет деактивирован. Это действие можно отменить позже.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Отмена</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deactivateUser(user.id)}
+                            className="bg-red-600 text-white hover:bg-red-700"
+                          >
+                            Деактивировать
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="bg-green-600 hover:bg-green-700">
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-gray-800">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-white">Активировать пользователя?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-gray-400">
+                            Профиль пользователя будет активирован.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Отмена</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => activateUser(user.id)}
+                            className="bg-green-600 text-white hover:bg-green-700"
+                          >
+                            Активировать
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

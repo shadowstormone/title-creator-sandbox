@@ -1,9 +1,14 @@
+
 -- Create profiles table
 create table public.profiles (
   id uuid references auth.users on delete cascade primary key,
   username text,
-  role text check (role in ('creator', 'admin', 'moderator', 'technician', 'dubber', 'vip', 'subscriber', 'user')),
+  email text,
+  role text check (role in ('creator', 'admin', 'moderator', 'technician', 'dubber', 'vip', 'subscriber', 'user')) default 'user',
   is_superadmin boolean default false,
+  is_banned boolean default false,
+  is_active boolean default true,
+  deactivated_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -43,10 +48,11 @@ create trigger handle_profiles_updated_at
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, username, role)
+  insert into public.profiles (id, username, email, role)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'username', 'User'),
+    new.email,
     coalesce(new.raw_user_meta_data->>'role', 'user')
   );
   return new;
